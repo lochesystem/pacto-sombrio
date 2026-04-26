@@ -1,0 +1,36 @@
+{
+  "name": "Pacto Sombrio",
+  "short_name": "Pacto Sombrio",
+  "description": "Roguelite de cartas baseado em turnos, inspirado em Slay the Spire.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/pacto-sombrio/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#0a0a1a",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

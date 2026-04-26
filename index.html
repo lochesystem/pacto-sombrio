@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pacto Sombrio">
+<meta name="application-name" content="Pacto Sombrio">
+<meta name="theme-color" content="#0a0a1a">
 <meta name="screen-orientation" content="landscape">
+<meta name="description" content="Pacto Sombrio — roguelite de cartas baseado em turnos rodando no navegador.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
 <title>Pacto Sombrio</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -8531,6 +8541,15 @@ const gameLoop = (timestamp) => {
 requestAnimationFrame(gameLoop);
 
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
