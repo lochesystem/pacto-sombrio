@@ -1,9 +1,8 @@
-const CACHE = 'pacto-sombrio-v1';
+const CACHE = 'pacto-sombrio-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './bmg.mp3',
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png'
@@ -34,10 +33,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  // Não intercepta Range requests (streaming de áudio/vídeo precisa de 206 Partial Content)
+  if (req.headers.has('range')) return;
+
+  // Não cacheia / não intercepta arquivos de mídia (deixa o navegador lidar com streaming)
+  if (/\.(mp3|ogg|wav|m4a|webm|opus|mp4)$/i.test(url.pathname)) return;
+
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) {
-        // Revalida em background pra próxima visita
+        // Revalida em background para próxima visita
         fetch(req).then((res) => {
           if (res && res.status === 200 && res.type === 'basic') {
             const clone = res.clone();
