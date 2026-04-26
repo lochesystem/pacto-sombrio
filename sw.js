@@ -1,15 +1,11 @@
-const CACHE = 'pacto-sombrio-v3';
+const CACHE = 'pacto-sombrio-v4';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png',
-  './bg-act1.png',
-  './bg-act2.png',
-  './bg-act3.png',
-  './bg-boss.png'
+  './icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {
