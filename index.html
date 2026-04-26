@@ -3454,7 +3454,7 @@ const drawEnemy = (enemy, idx) => {
     darkElf: 0.85, chosen: 0.95, snake: 0.6, wraith: 0.95, lich: 1.1,
     gargoyle: 1.05, soulEater: 0.95, zealot: 0.8, dragon: 1.3, theVoid: 1.4,
   };
-  const baseSize = (isTouchDevice ? 115 : 90) * (sizeMult[enemy.key] || 1);
+  const baseSize = (isTouchDevice ? 130 : 90) * (sizeMult[enemy.key] || 1);
 
   ctx.save();
   ctx.globalAlpha = alpha * 0.25;
@@ -3488,7 +3488,7 @@ const drawEnemy = (enemy, idx) => {
   }
 
   const mobE = isTouchDevice;
-  const barW = mobE ? 90 : 70;
+  const barW = mobE ? 100 : 70;
   const barX = enemy.x - barW / 2;
   const barY = enemy.y + baseSize * 0.7 + 5;
   drawBar(barX, barY, barW, mobE ? 14 : 10, enemy.hp / enemy.maxHp, '#e74c3c', '#cc3333');
@@ -4202,8 +4202,8 @@ const startCombat = (encounterType) => {
 
   combat.enemies = [];
   const mob = isTouchDevice;
-  const enemySpan = Math.min(W * 0.65, mob ? 800 : 700);
-  const spacing = Math.min(mob ? 240 : 200, enemySpan / chosen.length);
+  const enemySpan = Math.min(W * 0.65, mob ? 850 : 700);
+  const spacing = Math.min(mob ? 260 : 200, enemySpan / chosen.length);
   const startX = W / 2 - (chosen.length - 1) * spacing / 2;
   for (let i = 0; i < chosen.length; i++) {
     const e = makeEnemy(chosen[i]);
@@ -4336,12 +4336,12 @@ const layoutHand = () => {
   const count = cards.length;
   if (count === 0) return;
   const mob = isTouchDevice;
-  const cardSpacing = mob ? 130 : 95;
-  const cardScale = mob ? 1.15 : 0.75;
-  const totalWidth = Math.min(count * cardSpacing, W * 0.82);
+  const cardSpacing = mob ? 155 : 95;
+  const cardScale = mob ? 1.3 : 0.75;
+  const totalWidth = Math.min(count * cardSpacing, W * 0.88);
   const halfCard = cardSpacing / 2;
   const startX = (W - totalWidth) / 2 + halfCard;
-  const baseY = mob ? H - 115 : H - 85;
+  const baseY = mob ? H - 130 : H - 85;
 
   for (let i = 0; i < count; i++) {
     const t = count === 1 ? 0.5 : i / (count - 1);
@@ -4371,7 +4371,7 @@ const getHoveredEnemyIdx = () => {
     if (e.dead) continue;
     const dx = mouse.x - e.x;
     const dy = mouse.y - e.y;
-    const hitR = isTouchDevice ? 90 : 50;
+    const hitR = isTouchDevice ? 100 : 50;
     if (dx * dx + dy * dy < hitR * hitR) return i;
   }
   return -1;
@@ -5782,8 +5782,8 @@ const renderRewards = () => {
     ctx.fillText('ESCOLHA UMA CARTA', promptX + promptW / 2, promptY + promptH / 2);
     ctx.restore();
 
-    const rwdScale = isTouchDevice ? 1.4 : 1;
-    const rwdSpacing = isTouchDevice ? 220 : 160;
+    const rwdScale = isTouchDevice ? 1.5 : 1;
+    const rwdSpacing = isTouchDevice ? 240 : 160;
     for (let i = 0; i < rewards.cards.length; i++) {
       const cx = W / 2 + (i - 1) * rwdSpacing;
       const cy = 380;
@@ -6355,8 +6355,8 @@ const renderEvent = () => {
     ctx.fillText('ESCOLHA UMA CARTA', px + pw / 2, 190);
     ctx.restore();
 
-    const evtCardScale = isTouchDevice ? 1.3 : 1;
-    const evtCardSpace = isTouchDevice ? 200 : 160;
+    const evtCardScale = isTouchDevice ? 1.45 : 1;
+    const evtCardSpace = isTouchDevice ? 230 : 160;
     for (let i = 0; i < eventData.cardChoices.length; i++) {
       const cardX = W / 2 + (i - 1) * evtCardSpace;
       const cardY = 340;
@@ -7923,14 +7923,14 @@ const handleInput = () => {
         // Keep selected card lifted
         if (combat.selectedCardIdx >= 0 && combat.selectedCardIdx < combat.hand.length) {
           const selCard = combat.hand[combat.selectedCardIdx];
-          selCard.targetY -= isTouchDevice ? 80 : 65;
-          selCard.targetScale = isTouchDevice ? 1.4 : 1.05;
+          selCard.targetY -= isTouchDevice ? 90 : 65;
+          selCard.targetScale = isTouchDevice ? 1.5 : 1.05;
           selCard.hover = true;
         }
         if (combat.hoveredCardIdx >= 0 && combat.hoveredCardIdx !== combat.selectedCardIdx) {
           const card = combat.hand[combat.hoveredCardIdx];
-          card.targetY -= isTouchDevice ? 50 : 40;
-          card.targetScale = isTouchDevice ? 1.3 : 0.95;
+          card.targetY -= isTouchDevice ? 55 : 40;
+          card.targetScale = isTouchDevice ? 1.4 : 0.95;
           card.hover = true;
         }
       }
@@ -8088,8 +8088,8 @@ const handleInput = () => {
           combat.targeting = false;
           layoutHand();
           const card = combat.hand[cidx];
-          card.targetY -= isTouchDevice ? 80 : 65;
-          card.targetScale = isTouchDevice ? 1.4 : 1.05;
+          card.targetY -= isTouchDevice ? 90 : 65;
+          card.targetScale = isTouchDevice ? 1.5 : 1.05;
           card.hover = true;
         }
         break;
@@ -8114,8 +8114,8 @@ const handleInput = () => {
 
     case 'rewards': {
       if (!rewards.cardPicked && rewards.cards.length > 0) {
-        const rwdScale = isTouchDevice ? 1.4 : 1;
-        const rwdSpacing = isTouchDevice ? 220 : 160;
+        const rwdScale = isTouchDevice ? 1.5 : 1;
+        const rwdSpacing = isTouchDevice ? 240 : 160;
         for (let i = 0; i < rewards.cards.length; i++) {
           const cx = W / 2 + (i - 1) * rwdSpacing;
           const cy = 380;
