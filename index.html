@@ -74,6 +74,20 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
 
+// ==================== COMBAT BACKGROUNDS ====================
+const combatBgs = {};
+const loadBg = (key, src) => { const img = new Image(); img.src = src; img.onload = () => { combatBgs[key] = img; }; };
+loadBg('act1', 'bg-act1.png');
+loadBg('act2', 'bg-act2.png');
+loadBg('act3', 'bg-act3.png');
+loadBg('boss', 'bg-boss.png');
+
+const getCombatBg = () => {
+  const node = game.map && game.map[game.floor] && game.map[game.floor][game.nodeIdx];
+  if (node && node.type === 'boss' && combatBgs.boss) return combatBgs.boss;
+  return combatBgs[`act${game.act}`] || null;
+};
+
 // ==================== AUDIO ====================
 let audioCtx = null;
 let masterGain = null;
@@ -513,18 +527,38 @@ const renderCombatBackground = () => {
   const hueBase = act === 1 ? 120 : act === 2 ? 260 : 320;
   const hB = (hueBase + t * 8) % 360;
 
-  // --- SKY: animated gradient with aurora hue cycling ---
-  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrd.addColorStop(0, `hsl(${(hB + 200 + Math.sin(t * 0.4) * 40) % 360},60%,4%)`);
-  skyGrd.addColorStop(0.25, `hsl(${(hB + 260 + Math.sin(t * 0.3) * 50) % 360},55%,7%)`);
-  skyGrd.addColorStop(0.55, `hsl(${(hB + 140 + Math.sin(t * 0.5) * 35) % 360},50%,6%)`);
-  skyGrd.addColorStop(1, `hsl(${(hB + 80 + Math.sin(t * 0.2) * 20) % 360},45%,3%)`);
-  ctx.fillStyle = skyGrd;
-  ctx.fillRect(0, 0, W, H);
+  const bgImg = getCombatBg();
+  if (bgImg) {
+    const imgRatio = bgImg.width / bgImg.height;
+    const canvasRatio = W / H;
+    let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
+    if (imgRatio > canvasRatio) {
+      sw = bgImg.height * canvasRatio;
+      sx = (bgImg.width - sw) / 2;
+    } else {
+      sh = bgImg.width / canvasRatio;
+      sy = (bgImg.height - sh) / 2;
+    }
+    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, W, H);
 
-  // --- STARS / cosmic dust ---
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrd.addColorStop(0, `hsl(${(hB + 200 + Math.sin(t * 0.4) * 40) % 360},60%,4%)`);
+    skyGrd.addColorStop(0.25, `hsl(${(hB + 260 + Math.sin(t * 0.3) * 50) % 360},55%,7%)`);
+    skyGrd.addColorStop(0.55, `hsl(${(hB + 140 + Math.sin(t * 0.5) * 35) % 360},50%,6%)`);
+    skyGrd.addColorStop(1, `hsl(${(hB + 80 + Math.sin(t * 0.2) * 20) % 360},45%,3%)`);
+    ctx.fillStyle = skyGrd;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const hasBgImg = !!bgImg;
+  const fxAlpha = hasBgImg ? 0.35 : 1;
+
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = fxAlpha;
   for (let si = 0; si < 60; si++) {
     const sx = ((si * 137.5 + Math.sin(t * 0.08 + si) * 12) % W);
     const sy = ((si * 73.1 + Math.cos(t * 0.06 + si * 0.7) * 8) % (H * 0.5));
@@ -540,6 +574,7 @@ const renderCombatBackground = () => {
   ctx.restore();
   ctx.globalAlpha = 1;
 
+  if (!hasBgImg) {
   // --- AURORA BOREALIS CURTAINS ---
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -597,7 +632,9 @@ const renderCombatBackground = () => {
   }
   ctx.restore();
   ctx.globalAlpha = 1;
+  } // end if (!hasBgImg) aurora+rays
 
+  if (!hasBgImg) {
   // --- PARALLAX HILLS helper ---
   const drawHills = (baseY, speed, hue, sat, lum, alpha, amp, freq) => {
     const ht = t * speed * 0.3;
@@ -699,17 +736,19 @@ const renderCombatBackground = () => {
   }
   ctx.restore();
   ctx.globalAlpha = 1;
+  } // end if (!hasBgImg)
 
-  // --- FLOATING LIGHT ORBS (brighter, more) ---
+  // --- FLOATING LIGHT ORBS ---
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let oi = 0; oi < 18; oi++) {
+  const orbCount = hasBgImg ? 10 : 18;
+  for (let oi = 0; oi < orbCount; oi++) {
     const ot2 = t * 0.7 + oi * 1.7;
     const ox = W * 0.03 + (oi / 17) * W * 0.94 + Math.sin(ot2 * 0.8) * 40;
     const oy = 60 + Math.sin(ot2 * 0.3 + oi * 0.8) * (H * 0.6);
     const or2 = 3 + Math.sin(ot2 * 0.6) * 3;
     const oh = (hB + oi * 20 + Math.sin(t * 1.2 + oi) * 30) % 360;
-    ctx.globalAlpha = 0.25 + Math.sin(ot2 * 0.9) * 0.15;
+    ctx.globalAlpha = (hasBgImg ? 0.15 : 0.25) + Math.sin(ot2 * 0.9) * 0.15;
     ctx.shadowColor = `hsl(${oh},90%,65%)`;
     ctx.shadowBlur = 20;
     ctx.fillStyle = `hsl(${oh},90%,75%)`;
@@ -721,6 +760,7 @@ const renderCombatBackground = () => {
   ctx.restore();
   ctx.globalAlpha = 1;
 
+  if (!hasBgImg) {
   // --- FLOWING RIVER of light ---
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -743,6 +783,7 @@ const renderCombatBackground = () => {
   }
   ctx.restore();
   ctx.globalAlpha = 1;
+  } // end if (!hasBgImg) river
 
   renderAmbientParticles();
 };
@@ -2888,17 +2929,19 @@ const generateMap = () => {
   return floors;
 };
 
+const MAP_MOBILE_SPACING = 85;
+const MAP_MOBILE_TOTALW = 700;
 const getNodePos = (floorIdx, nodeIdx, nodeCount) => {
-  const totalW = 500;
+  const mob = isTouchDevice;
+  const totalW = mob ? MAP_MOBILE_TOTALW : 500;
   const startX = (W - totalW) / 2;
   const topMargin = 100;
   const botMargin = 65;
   const totalFloors = game.map ? game.map.length : 15;
   const usableH = H - topMargin - botMargin;
-  const mobileMap = isTouchDevice;
-  const spacing = mobileMap ? 65 : usableH / Math.max(totalFloors - 1, 1);
+  const spacing = mob ? MAP_MOBILE_SPACING : usableH / Math.max(totalFloors - 1, 1);
   const baseY = H - botMargin - floorIdx * spacing;
-  const y = mobileMap ? baseY + mapScrollY : baseY;
+  const y = mob ? baseY + mapScrollY : baseY;
   const x = nodeCount === 1 ? W / 2 : startX + (nodeIdx / (nodeCount - 1)) * totalW;
   return { x, y };
 };
@@ -2908,7 +2951,7 @@ const getMapMaxScroll = () => {
   const topMargin = 100;
   const botMargin = 65;
   const usableH = H - topMargin - botMargin;
-  const totalMapH = (totalFloors - 1) * 65;
+  const totalMapH = (totalFloors - 1) * MAP_MOBILE_SPACING;
   return Math.max(0, totalMapH - usableH);
 };
 const centerMapOnFloor = (floor) => {
@@ -2916,7 +2959,7 @@ const centerMapOnFloor = (floor) => {
   const topMargin = 100;
   const botMargin = 65;
   const usableH = H - topMargin - botMargin;
-  const targetY = floor * 65 - usableH / 2 + 65;
+  const targetY = floor * MAP_MOBILE_SPACING - usableH / 2 + MAP_MOBILE_SPACING;
   mapScrollY = clamp(targetY, 0, getMapMaxScroll());
 };
 
@@ -3087,7 +3130,7 @@ const renderMap = () => {
   ctx.fill();
   ctx.restore();
 
-  ctx.font = 'bold italic 28px sans-serif';
+  ctx.font = isTouchDevice ? 'bold italic 34px sans-serif' : 'bold italic 28px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffffff';
@@ -3100,7 +3143,7 @@ const renderMap = () => {
   // --- Stats bar (angular, below title) ---
   ctx.save();
   ctx.transform(1, 0, skew, 1, 0, 0);
-  const statsW = 460, statsH = 28;
+  const statsW = isTouchDevice ? 560 : 460, statsH = isTouchDevice ? 36 : 28;
   const statsX = W / 2 - statsW / 2, statsY = titleY + titleH + 8;
 
   ctx.fillStyle = '#0e0e18cc';
@@ -3116,16 +3159,16 @@ const renderMap = () => {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.font = 'bold italic 14px sans-serif';
+  ctx.font = isTouchDevice ? 'bold italic 18px sans-serif' : 'bold italic 14px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const smid = statsY + statsH / 2;
 
   // HP
   ctx.fillStyle = '#44cccc';
-  ctx.fillText(`HP`, statsX + 40, smid);
+  ctx.fillText(`HP`, statsX + 50, smid);
   const hpPct = game.hp / game.maxHp;
-  const hpBarX = statsX + 60, hpBarW = 100, hpBarH = 12;
+  const hpBarX = statsX + 75, hpBarW = isTouchDevice ? 130 : 100, hpBarH = isTouchDevice ? 16 : 12;
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(hpBarX, smid - hpBarH / 2, hpBarW, hpBarH);
   const hpGrd = ctx.createLinearGradient(hpBarX, 0, hpBarX + hpBarW * hpPct, 0);
@@ -3134,11 +3177,11 @@ const renderMap = () => {
   ctx.fillStyle = hpGrd;
   ctx.fillRect(hpBarX, smid - hpBarH / 2, hpBarW * hpPct, hpBarH);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 11px sans-serif';
+  ctx.font = isTouchDevice ? 'bold 14px sans-serif' : 'bold 11px sans-serif';
   ctx.fillText(`${game.hp}/${game.maxHp}`, hpBarX + hpBarW / 2, smid);
 
   // Gold
-  ctx.font = 'bold italic 14px sans-serif';
+  ctx.font = isTouchDevice ? 'bold italic 18px sans-serif' : 'bold italic 14px sans-serif';
   ctx.fillStyle = '#f4d03f';
   ctx.shadowColor = '#cc9933';
   ctx.shadowBlur = 6;
@@ -3184,7 +3227,7 @@ const renderMap = () => {
           ctx.shadowColor = '#cc1122';
           ctx.shadowBlur = 8;
           ctx.strokeStyle = `rgba(204,17,34,${pulse})`;
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = isTouchDevice ? 4 : 2.5;
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
           ctx.lineTo(to.x, to.y);
@@ -3192,14 +3235,14 @@ const renderMap = () => {
           ctx.restore();
 
           ctx.strokeStyle = `rgba(255,255,255,${pulse * 0.6})`;
-          ctx.lineWidth = 1;
+          ctx.lineWidth = isTouchDevice ? 2 : 1;
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
           ctx.lineTo(to.x, to.y);
           ctx.stroke();
         } else {
           ctx.strokeStyle = visited ? '#3a3a55' : '#2e2e4a';
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = isTouchDevice ? 2.5 : 1.5;
           ctx.beginPath();
           ctx.moveTo(from.x, from.y);
           ctx.lineTo(to.x, to.y);
@@ -3228,7 +3271,7 @@ const renderMap = () => {
         ctx.translate(-pos.x, -pos.y);
       }
 
-      const ns = isTouchDevice ? 22 : 17;
+      const ns = isTouchDevice ? 28 : 17;
       const drawNodeShape = (x, y, s) => {
         ctx.beginPath();
         ctx.moveTo(x, y - s);
@@ -3266,11 +3309,17 @@ const renderMap = () => {
       ctx.fillStyle = isReachable ? '#141428' : isCurrent ? '#1a1520' : node.visited ? '#121220' : '#0e0e1a';
       ctx.fill();
 
-      // Icon
       const iconFn = NODE_ICONS[node.type];
       if (iconFn) {
         ctx.globalAlpha = node.visited && !isCurrent && !isReachable ? 0.3 : 1;
+        if (isTouchDevice) {
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.scale(1.5, 1.5);
+          ctx.translate(-pos.x, -pos.y);
+        }
         iconFn(pos.x, pos.y);
+        if (isTouchDevice) ctx.restore();
         ctx.globalAlpha = 1;
       }
 
@@ -3336,8 +3385,7 @@ const renderMap = () => {
   ctx.lineTo(W + 10, footY);
   ctx.stroke();
 
-  // Relics label
-  ctx.font = 'bold italic 13px sans-serif';
+  ctx.font = isTouchDevice ? 'bold italic 16px sans-serif' : 'bold italic 13px sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#cc1122';
@@ -3568,15 +3616,19 @@ const layoutHand = () => {
   const cards = combat.hand;
   const count = cards.length;
   if (count === 0) return;
-  const totalWidth = Math.min(count * 95, W * 0.65);
-  const startX = (W - totalWidth) / 2 + 47;
-  const baseY = H - 85;
+  const mob = isTouchDevice;
+  const cardSpacing = mob ? 110 : 95;
+  const cardScale = mob ? 0.95 : 0.75;
+  const totalWidth = Math.min(count * cardSpacing, W * 0.75);
+  const halfCard = cardSpacing / 2;
+  const startX = (W - totalWidth) / 2 + halfCard;
+  const baseY = mob ? H - 100 : H - 85;
 
   for (let i = 0; i < count; i++) {
     const t = count === 1 ? 0.5 : i / (count - 1);
-    cards[i].targetX = count === 1 ? W / 2 : startX + t * (totalWidth - 94);
+    cards[i].targetX = count === 1 ? W / 2 : startX + t * (totalWidth - cardSpacing);
     cards[i].targetY = baseY + Math.abs(t - 0.5) * 20;
-    cards[i].targetScale = 0.75;
+    cards[i].targetScale = cardScale;
     cards[i].hover = false;
   }
 };
@@ -3600,7 +3652,8 @@ const getHoveredEnemyIdx = () => {
     if (e.dead) continue;
     const dx = mouse.x - e.x;
     const dy = mouse.y - e.y;
-    if (dx * dx + dy * dy < 50 * 50) return i;
+    const hitR = isTouchDevice ? 70 : 50;
+    if (dx * dx + dy * dy < hitR * hitR) return i;
   }
   return -1;
 };
@@ -4193,6 +4246,7 @@ const endCombat = () => {
 
 // ==================== COMBAT RENDERING ====================
 const renderCombat = () => {
+  const mobC = isTouchDevice;
   renderCombatBackground();
 
   for (let i = 0; i < combat.enemies.length; i++) {
@@ -4213,12 +4267,18 @@ const renderCombat = () => {
   }
 
   const drawPersonaHUD = () => {
-    const hx = 8, hy = 408;
+    const hudScale = mobC ? 1.25 : 1;
+    const hx = 8, hy = mobC ? 370 : 408;
     const pw = 265, ph = 152;
     const skew = -0.12;
     const now = Date.now();
 
     ctx.save();
+    if (mobC) {
+      ctx.translate(hx, hy);
+      ctx.scale(hudScale, hudScale);
+      ctx.translate(-hx, -hy);
+    }
 
     ctx.save();
     ctx.transform(1, 0, skew, 1, hx, hy);
@@ -4585,7 +4645,8 @@ const renderCombat = () => {
   };
   drawPersonaHUD();
 
-  const endBtnX = W - 140, endBtnY = 420, endBtnW = 120, endBtnH = 40;
+  const endBtnW = mobC ? 160 : 120, endBtnH = mobC ? 54 : 40;
+  const endBtnX = W - endBtnW - 20, endBtnY = mobC ? 390 : 420;
   const endBtnHov = combat.playerTurn && !combat.animating && isInRect(mouse.x, mouse.y, endBtnX, endBtnY, endBtnW, endBtnH);
   {
     const bx = endBtnX, by = endBtnY, bw = endBtnW, bh = endBtnH;
@@ -4623,7 +4684,7 @@ const renderCombat = () => {
     } else {
       ctx.fillStyle = '#555555';
     }
-    ctx.font = 'bold italic 14px sans-serif';
+    ctx.font = mobC ? 'bold italic 18px sans-serif' : 'bold italic 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('FIM DO TURNO', bx + bw / 2, by + bh / 2);
@@ -4632,7 +4693,7 @@ const renderCombat = () => {
   }
 
   ctx.save();
-  ctx.font = 'bold italic 11px sans-serif';
+  ctx.font = mobC ? 'bold italic 14px sans-serif' : 'bold italic 11px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -4702,10 +4763,10 @@ const renderCombat = () => {
 
   ctx.restore();
 
-  ctx.font = '12px sans-serif';
+  ctx.font = mobC ? 'bold 16px sans-serif' : '12px sans-serif';
   ctx.textAlign = 'right';
   ctx.fillStyle = PAL.gold;
-  ctx.fillText(`Ouro: ${game.gold}`, W - 20, 15);
+  ctx.fillText(`Ouro: ${game.gold}`, W - 20, mobC ? 18 : 15);
 
   for (let i = 0; i < combat.hand.length; i++) {
     if (i === combat.hoveredCardIdx) continue;
@@ -4740,8 +4801,8 @@ const renderCombat = () => {
     }
   }
 
-  // Potion slots
-  const potSlotX = 290, potSlotY = 420, potSlotW = 42, potSlotH = 42, potGap = 6;
+  const potSlotW = mobC ? 56 : 42, potSlotH = mobC ? 56 : 42, potGap = mobC ? 8 : 6;
+  const potSlotX = mobC ? 340 : 290, potSlotY = mobC ? 395 : 420;
   let hoveredPotionTip = null;
   for (let i = 0; i < 3; i++) {
     const px = potSlotX + i * (potSlotW + potGap);
@@ -4831,14 +4892,15 @@ const renderCombat = () => {
     ctx.restore();
   }
 
-  // Pause button
   {
-    const pbX = W - 60, pbY = 36, pbS = 20;
-    const pbHov = isInRect(mouse.x, mouse.y, pbX - pbS / 2, pbY - pbS / 2, pbS, pbS);
+    const pbs = mobC ? 32 : 20;
+    const pbX = W - (mobC ? 50 : 60), pbY = mobC ? 32 : 36;
+    const pbHov = isInRect(mouse.x, mouse.y, pbX - pbs / 2, pbY - pbs / 2, pbs, pbs);
     ctx.save();
     ctx.fillStyle = pbHov ? '#ffffff44' : '#ffffff22';
-    ctx.fillRect(pbX - 6, pbY - 8, 4, 16);
-    ctx.fillRect(pbX + 2, pbY - 8, 4, 16);
+    const barW = mobC ? 6 : 4, barH = mobC ? 22 : 16, gap = mobC ? 4 : 2;
+    ctx.fillRect(pbX - barW - gap / 2, pbY - barH / 2, barW, barH);
+    ctx.fillRect(pbX + gap / 2, pbY - barH / 2, barW, barH);
     ctx.restore();
   }
 
@@ -4967,11 +5029,14 @@ const renderRewards = () => {
     ctx.fillText('ESCOLHA UMA CARTA', promptX + promptW / 2, promptY + promptH / 2);
     ctx.restore();
 
+    const rwdScale = isTouchDevice ? 1.2 : 1;
+    const rwdSpacing = isTouchDevice ? 190 : 160;
     for (let i = 0; i < rewards.cards.length; i++) {
-      const cx = W / 2 + (i - 1) * 160;
+      const cx = W / 2 + (i - 1) * rwdSpacing;
       const cy = 380;
-      const hovered = isInRect(mouse.x, mouse.y, cx - CARD_W / 2, cy - CARD_H / 2, CARD_W, CARD_H);
-      drawCard(cx, cy, rewards.cards[i], hovered ? 1.05 : 1, hovered, true);
+      const hitW = CARD_W * rwdScale, hitH = CARD_H * rwdScale;
+      const hovered = isInRect(mouse.x, mouse.y, cx - hitW / 2, cy - hitH / 2, hitW, hitH);
+      drawCard(cx, cy, rewards.cards[i], hovered ? rwdScale * 1.05 : rwdScale, hovered, true);
     }
   } else {
     ctx.save();
@@ -6401,56 +6466,61 @@ const renderMenu = (dt) => {
   // --- Menu options ---
   const hasSave = hasRunSave();
   const menuItems = ['NOVO JOGO', 'CONTINUAR', 'ALTAR DAS ALMAS', 'BESTIÁRIO', 'CARTAS', 'TROFÉUS'];
-  const menuStartY = 340;
+  const menuSpacing = isTouchDevice ? 55 : 45;
+  const menuBtnH = isTouchDevice ? 42 : 32;
+  const menuBtnW = isTouchDevice ? 440 : 302;
+  const menuStartY = isTouchDevice ? 320 : 340;
   const menuHovIdx = (() => {
     for (let i = 0; i < menuItems.length; i++) {
-      const iy = menuStartY + i * 45;
-      if (isInRect(mouse.x, mouse.y, 60, iy - 5, 380, 40)) return i;
+      const iy = menuStartY + i * menuSpacing;
+      if (isInRect(mouse.x, mouse.y, 60, iy - 5, menuBtnW + 80, menuBtnH + 10)) return i;
     }
     return -1;
   })();
 
   for (let i = 0; i < menuItems.length; i++) {
-    const iy = menuStartY + i * 45;
+    const iy = menuStartY + i * menuSpacing;
     const hov = i === menuHovIdx;
     const disabled = i === 1 && !hasSave;
+    const bx1 = 72, bx2 = bx1 + menuBtnW;
 
     ctx.save();
     ctx.transform(1, 0, skew, 1, 0, 0);
 
     ctx.fillStyle = disabled ? '#552233' : '#cc1122';
     ctx.beginPath();
-    ctx.moveTo(72, iy - 3);
-    ctx.lineTo(380, iy - 3);
-    ctx.lineTo(383, iy + 35);
-    ctx.lineTo(69, iy + 35);
+    ctx.moveTo(bx1, iy - 3);
+    ctx.lineTo(bx2, iy - 3);
+    ctx.lineTo(bx2 + 3, iy + menuBtnH + 3);
+    ctx.lineTo(bx1 - 3, iy + menuBtnH + 3);
     ctx.closePath();
     ctx.fill();
 
     ctx.fillStyle = disabled ? '#1a1a1a' : (hov ? '#ffffff' : '#0a0a0a');
     ctx.beginPath();
-    ctx.moveTo(75, iy);
-    ctx.lineTo(377, iy);
-    ctx.lineTo(380, iy + 32);
-    ctx.lineTo(72, iy + 32);
+    ctx.moveTo(bx1 + 3, iy);
+    ctx.lineTo(bx2 - 3, iy);
+    ctx.lineTo(bx2, iy + menuBtnH);
+    ctx.lineTo(bx1, iy + menuBtnH);
     ctx.closePath();
     ctx.fill();
 
     if (hov && !disabled) {
       ctx.fillStyle = '#cc1122';
+      const mid = iy + menuBtnH / 2;
       ctx.beginPath();
-      ctx.moveTo(55, iy + 6);
-      ctx.lineTo(68, iy + 16);
-      ctx.lineTo(55, iy + 26);
+      ctx.moveTo(55, mid - 10);
+      ctx.lineTo(68, mid);
+      ctx.lineTo(55, mid + 10);
       ctx.closePath();
       ctx.fill();
     }
 
-    ctx.font = 'bold italic 17px sans-serif';
+    ctx.font = isTouchDevice ? 'bold italic 22px sans-serif' : 'bold italic 17px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = disabled ? '#555555' : (hov ? '#cc1122' : '#ffffff');
-    ctx.fillText(menuItems[i], 95, iy + 16);
+    ctx.fillText(menuItems[i], 95, iy + menuBtnH / 2);
     ctx.restore();
   }
 
@@ -7057,7 +7127,8 @@ const handleInput = () => {
       return;
     }
     if (gamePaused) {
-      const pmX = W / 2 - 150, pmW = 300, pmBtnH = 44, pmGap = 12;
+      const pmW = isTouchDevice ? 400 : 300, pmBtnH = isTouchDevice ? 58 : 44, pmGap = isTouchDevice ? 16 : 12;
+      const pmX = W / 2 - pmW / 2;
       const pmStartY = H / 2 - 80;
       for (let pi = 0; pi < 4; pi++) {
         const by = pmStartY + pi * (pmBtnH + pmGap);
@@ -7104,13 +7175,13 @@ const handleInput = () => {
 
   // Global pause/help button clicks
   if (!['menu', 'gameover', 'victory', 'charSelect', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state)) {
-    const hitPad = isTouchDevice ? 10 : 0;
-    const pbX = W - 60, pbY = 36, pbS = 20 + hitPad * 2;
+    const hitPad = isTouchDevice ? 14 : 0;
+    const pbX = W - (isTouchDevice ? 50 : 60), pbY = isTouchDevice ? 32 : 36, pbS = (isTouchDevice ? 36 : 20) + hitPad * 2;
     if (isInRect(mouse.x, mouse.y, pbX - pbS / 2, pbY - pbS / 2, pbS, pbS)) {
       gamePaused = true;
       return;
     }
-    const hbX = W - 88, hbY = 36, hbS = 20 + hitPad * 2;
+    const hbX = W - (isTouchDevice ? 100 : 88), hbY = isTouchDevice ? 32 : 36, hbS = (isTouchDevice ? 48 : 20) + hitPad * 2;
     if (isInRect(mouse.x, mouse.y, hbX - hbS / 2, hbY - hbS / 2, hbS, hbS)) {
       showHelp = true;
       helpScrollY = 0;
@@ -7120,10 +7191,11 @@ const handleInput = () => {
 
   switch (game.state) {
     case 'menu': {
-      const menuStartY = 340;
+      const menuSpacing = isTouchDevice ? 55 : 45;
+      const menuStartY = isTouchDevice ? 320 : 340;
       for (let mi = 0; mi < 6; mi++) {
-        const iy = menuStartY + mi * 45;
-        if (isInRect(mouse.x, mouse.y, 50, iy - 10, 400, 45)) {
+        const iy = menuStartY + mi * menuSpacing;
+        if (isInRect(mouse.x, mouse.y, 50, iy - 10, isTouchDevice ? 520 : 400, menuSpacing)) {
           if (mi === 0) {
             fadeToState('charSelect');
           } else if (mi === 1 && hasRunSave()) {
@@ -7153,7 +7225,7 @@ const handleInput = () => {
         const pos = getNodePos(r.floor, r.node, game.map[r.floor].length);
         const dx = mouse.x - pos.x;
         const dy = mouse.y - pos.y;
-        const nodeHitR = isTouchDevice ? 30 : 20;
+        const nodeHitR = isTouchDevice ? 38 : 20;
         if (dx * dx + dy * dy < nodeHitR * nodeHitR) {
           enterNode(r.floor, r.node);
           break;
@@ -7165,8 +7237,8 @@ const handleInput = () => {
     case 'combat': {
       if (!combat.playerTurn || combat.animating) break;
 
-      // Potion clicks
-      const potSlotX = 290, potSlotY = 420, potSlotW = 42, potSlotH = 42, potGap = 6;
+      const potSlotW = isTouchDevice ? 56 : 42, potSlotH = isTouchDevice ? 56 : 42, potGap = isTouchDevice ? 8 : 6;
+      const potSlotX = isTouchDevice ? 340 : 290, potSlotY = isTouchDevice ? 395 : 420;
       for (let pi = 0; pi < game.potions.length; pi++) {
         const ppx = potSlotX + pi * (potSlotW + potGap);
         if (isInRect(mouse.x, mouse.y, ppx, potSlotY, potSlotW, potSlotH)) {
@@ -7209,7 +7281,8 @@ const handleInput = () => {
         break;
       }
 
-      const endBtnX = W - 140, endBtnY = 420, endBtnW = 120, endBtnH = 40;
+      const endBtnW = isTouchDevice ? 160 : 120, endBtnH = isTouchDevice ? 54 : 40;
+      const endBtnX = W - endBtnW - 20, endBtnY = isTouchDevice ? 390 : 420;
       const endPad = isTouchDevice ? 8 : 0;
       if (isInRect(mouse.x, mouse.y, endBtnX - endPad, endBtnY - endPad, endBtnW + endPad * 2, endBtnH + endPad * 2)) {
         endPlayerTurn();
@@ -7219,10 +7292,13 @@ const handleInput = () => {
 
     case 'rewards': {
       if (!rewards.cardPicked && rewards.cards.length > 0) {
+        const rwdScale = isTouchDevice ? 1.2 : 1;
+        const rwdSpacing = isTouchDevice ? 190 : 160;
         for (let i = 0; i < rewards.cards.length; i++) {
-          const cx = W / 2 + (i - 1) * 160;
+          const cx = W / 2 + (i - 1) * rwdSpacing;
           const cy = 380;
-          if (isInRect(mouse.x, mouse.y, cx - CARD_W / 2 - 10, cy - CARD_H / 2 - 10, CARD_W + 20, CARD_H + 20)) {
+          const hitW = CARD_W * rwdScale + 20, hitH = CARD_H * rwdScale + 20;
+          if (isInRect(mouse.x, mouse.y, cx - hitW / 2, cy - hitH / 2, hitW, hitH)) {
             game.deck.push(rewards.cards[i]);
             rewards.cardPicked = true;
             break;
@@ -8260,17 +8336,18 @@ const render = (dt) => {
 
   {
     const playing = bgmStarted && bgm && !bgmMuted && !bgm.paused;
-    const mx = W - 36, my = 20;
+    const mSz = isTouchDevice ? 26 : 18;
+    const mx = W - (isTouchDevice ? 28 : 36), my = isTouchDevice ? 22 : 20;
     ctx.fillStyle = playing ? '#88aacc' : '#445566';
-    ctx.font = '18px monospace';
+    ctx.font = `${mSz}px monospace`;
     ctx.textAlign = 'center';
     ctx.fillText('♫', mx, my);
     if (!playing) {
       ctx.strokeStyle = '#cc4444';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = isTouchDevice ? 3 : 2;
       ctx.beginPath();
-      ctx.moveTo(mx - 8, my - 12);
-      ctx.lineTo(mx + 8, my + 4);
+      ctx.moveTo(mx - 10, my - 14);
+      ctx.lineTo(mx + 10, my + 6);
       ctx.stroke();
     }
     ctx.textAlign = 'left';
@@ -8280,36 +8357,36 @@ const render = (dt) => {
   if (!gamePaused && !showHelp && !['menu', 'gameover', 'victory', 'charSelect', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state)) {
     // Pause button (top-right area, below music icon)
     if (game.state !== 'combat') {
-      const touchPad = isTouchDevice ? 6 : 0;
-      const pbX = W - 60, pbY = 36, pbS = 20 + touchPad * 2;
+      const touchPad = isTouchDevice ? 10 : 0;
+      const pbX = W - (isTouchDevice ? 50 : 60), pbY = isTouchDevice ? 32 : 36, pbS = (isTouchDevice ? 36 : 20) + touchPad * 2;
       const pbHov = isInRect(mouse.x, mouse.y, pbX - pbS / 2, pbY - pbS / 2, pbS, pbS);
       ctx.save();
       if (isTouchDevice) {
         ctx.fillStyle = pbHov ? '#ffffff33' : '#ffffff15';
         ctx.beginPath();
-        ctx.arc(pbX, pbY, 18, 0, Math.PI * 2);
+        ctx.arc(pbX, pbY, 24, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.fillStyle = pbHov ? '#ffffff66' : '#ffffff33';
-      const barW = isTouchDevice ? 5 : 4;
-      const barH = isTouchDevice ? 18 : 16;
-      ctx.fillRect(pbX - 7, pbY - barH / 2, barW, barH);
-      ctx.fillRect(pbX + 2, pbY - barH / 2, barW, barH);
+      const barW = isTouchDevice ? 6 : 4;
+      const barH = isTouchDevice ? 22 : 16;
+      const gap = isTouchDevice ? 4 : 2;
+      ctx.fillRect(pbX - barW - gap / 2, pbY - barH / 2, barW, barH);
+      ctx.fillRect(pbX + gap / 2, pbY - barH / 2, barW, barH);
       ctx.restore();
     }
-    // Help button
     {
-      const hbX = W - 88, hbY = 36;
-      const hbS = isTouchDevice ? 36 : 20;
+      const hbX = W - (isTouchDevice ? 100 : 88), hbY = isTouchDevice ? 32 : 36;
+      const hbS = isTouchDevice ? 48 : 20;
       const hbHov = isInRect(mouse.x, mouse.y, hbX - hbS / 2, hbY - hbS / 2, hbS, hbS);
       ctx.save();
       if (isTouchDevice) {
         ctx.fillStyle = hbHov ? '#ffffff33' : '#ffffff15';
         ctx.beginPath();
-        ctx.arc(hbX, hbY, 18, 0, Math.PI * 2);
+        ctx.arc(hbX, hbY, 24, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.font = `bold ${isTouchDevice ? 20 : 16}px sans-serif`;
+      ctx.font = `bold ${isTouchDevice ? 24 : 16}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = hbHov ? '#ffffff88' : '#ffffff33';
@@ -8355,7 +8432,8 @@ const render = (dt) => {
     ctx.fillStyle = '#cc1122';
     ctx.fillText('PAUSADO', W / 2, titleY + titleH / 2);
 
-    const pmX = W / 2 - 150, pmW = 300, pmBtnH = 44, pmGap = 12;
+    const pmW = isTouchDevice ? 400 : 300, pmBtnH = isTouchDevice ? 58 : 44, pmGap = isTouchDevice ? 16 : 12;
+    const pmX = W / 2 - pmW / 2;
     const pmStartY = H / 2 - 80;
     const pauseBtns = ['CONTINUAR', 'AJUDA', 'TROFÉUS', 'MENU PRINCIPAL'];
     const pauseBtnColors = ['#cc1122', '#3366cc', '#ffd700', '#666666'];
@@ -8378,7 +8456,7 @@ const render = (dt) => {
       ctx.lineTo(pmX - 3 - sk, by + pmBtnH);
       ctx.closePath();
       ctx.fill();
-      ctx.font = 'bold italic 18px sans-serif';
+      ctx.font = isTouchDevice ? 'bold italic 22px sans-serif' : 'bold italic 18px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = hov ? pauseBtnColors[pi] : '#cccccc';
