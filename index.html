@@ -35,32 +35,44 @@ canvas{display:block;cursor:pointer;max-width:100vw;max-height:100dvh;object-fit
 'use strict';
 (() => {
 
-const W = 1100, H = 750;
+const H = 750;
+let W = 1100;
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 canvas.width = W;
 canvas.height = H;
 
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
 const resizeCanvas = () => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const ratio = W / H;
-  let cw, ch;
-  if (vw / vh > ratio) {
-    ch = vh;
-    cw = ch * ratio;
+  if (isTouchDevice) {
+    const deviceRatio = vw / vh;
+    const newW = Math.round(H * Math.max(deviceRatio, 1.47));
+    if (newW !== W) {
+      W = newW;
+      canvas.width = W;
+    }
+    canvas.style.width = vw + 'px';
+    canvas.style.height = vh + 'px';
   } else {
-    cw = vw;
-    ch = cw / ratio;
+    const ratio = W / H;
+    let cw, ch;
+    if (vw / vh > ratio) {
+      ch = vh;
+      cw = ch * ratio;
+    } else {
+      cw = vw;
+      ch = cw / ratio;
+    }
+    canvas.style.width = cw + 'px';
+    canvas.style.height = ch + 'px';
   }
-  canvas.style.width = cw + 'px';
-  canvas.style.height = ch + 'px';
 };
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
-
-const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
 // ==================== AUDIO ====================
 let audioCtx = null;
@@ -289,6 +301,7 @@ let trophyScrollY = 0;
 let bestiaryScrollY = 0;
 let cardexScrollY = 0;
 let cardexFilter = 'all';
+let mapScrollY = 0;
 
 const triggerShake = (amount) => { shakeAmount = Math.max(shakeAmount, amount); };
 const triggerDamageFlash = () => { damageFlashTimer = 1; };
@@ -2882,10 +2895,29 @@ const getNodePos = (floorIdx, nodeIdx, nodeCount) => {
   const botMargin = 65;
   const totalFloors = game.map ? game.map.length : 15;
   const usableH = H - topMargin - botMargin;
-  const spacing = usableH / Math.max(totalFloors - 1, 1);
-  const y = H - botMargin - floorIdx * spacing;
+  const mobileMap = isTouchDevice;
+  const spacing = mobileMap ? 65 : usableH / Math.max(totalFloors - 1, 1);
+  const baseY = H - botMargin - floorIdx * spacing;
+  const y = mobileMap ? baseY + mapScrollY : baseY;
   const x = nodeCount === 1 ? W / 2 : startX + (nodeIdx / (nodeCount - 1)) * totalW;
   return { x, y };
+};
+const getMapMaxScroll = () => {
+  if (!isTouchDevice || !game.map) return 0;
+  const totalFloors = game.map.length;
+  const topMargin = 100;
+  const botMargin = 65;
+  const usableH = H - topMargin - botMargin;
+  const totalMapH = (totalFloors - 1) * 65;
+  return Math.max(0, totalMapH - usableH);
+};
+const centerMapOnFloor = (floor) => {
+  if (!isTouchDevice || !game.map) return;
+  const topMargin = 100;
+  const botMargin = 65;
+  const usableH = H - topMargin - botMargin;
+  const targetY = floor * 65 - usableH / 2 + 65;
+  mapScrollY = clamp(targetY, 0, getMapMaxScroll());
 };
 
 const getReachableNodes = () => {
@@ -3119,6 +3151,14 @@ const renderMap = () => {
 
   ctx.restore();
 
+  // --- Clip map area (for scrollable mobile) ---
+  if (isTouchDevice) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 90, W, H - 90 - 50);
+    ctx.clip();
+  }
+
   // --- Map connections ---
   const reachable = getReachableNodes();
   const reachSet = new Set(reachable.map(r => `${r.floor}-${r.node}`));
@@ -3188,8 +3228,7 @@ const renderMap = () => {
         ctx.translate(-pos.x, -pos.y);
       }
 
-      // Angular node shape (hexagonal-ish)
-      const ns = 17;
+      const ns = isTouchDevice ? 22 : 17;
       const drawNodeShape = (x, y, s) => {
         ctx.beginPath();
         ctx.moveTo(x, y - s);
@@ -3236,6 +3275,42 @@ const renderMap = () => {
       }
 
       ctx.restore();
+    }
+  }
+
+  if (isTouchDevice) {
+    ctx.restore();
+  }
+
+  // --- Scroll indicators (mobile) ---
+  if (isTouchDevice) {
+    const maxSc = getMapMaxScroll();
+    if (maxSc > 0) {
+      if (mapScrollY > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.003) * 0.3;
+        ctx.fillStyle = '#cc1122';
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - 12, 96);
+        ctx.lineTo(W / 2 + 12, 96);
+        ctx.lineTo(W / 2, 86);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      if (mapScrollY < maxSc) {
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.003) * 0.3;
+        ctx.fillStyle = '#cc1122';
+        const arrY = H - 56;
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - 12, arrY);
+        ctx.lineTo(W / 2 + 12, arrY);
+        ctx.lineTo(W / 2, arrY + 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
     }
   }
 
@@ -3360,7 +3435,8 @@ const startCombat = (encounterType) => {
   const chosen = encounters[randInt(0, encounters.length - 1)];
 
   combat.enemies = [];
-  const spacing = Math.min(200, 700 / chosen.length);
+  const enemySpan = Math.min(W * 0.65, 700);
+  const spacing = Math.min(200, enemySpan / chosen.length);
   const startX = W / 2 - (chosen.length - 1) * spacing / 2;
   for (let i = 0; i < chosen.length; i++) {
     const e = makeEnemy(chosen[i]);
@@ -3492,7 +3568,7 @@ const layoutHand = () => {
   const cards = combat.hand;
   const count = cards.length;
   if (count === 0) return;
-  const totalWidth = Math.min(count * 95, 750);
+  const totalWidth = Math.min(count * 95, W * 0.65);
   const startX = (W - totalWidth) / 2 + 47;
   const baseY = H - 85;
 
@@ -4509,7 +4585,7 @@ const renderCombat = () => {
   };
   drawPersonaHUD();
 
-  const endBtnX = 960, endBtnY = 420, endBtnW = 120, endBtnH = 40;
+  const endBtnX = W - 140, endBtnY = 420, endBtnW = 120, endBtnH = 40;
   const endBtnHov = combat.playerTurn && !combat.animating && isInRect(mouse.x, mouse.y, endBtnX, endBtnY, endBtnW, endBtnH);
   {
     const bx = endBtnX, by = endBtnY, bw = endBtnW, bh = endBtnH;
@@ -5126,7 +5202,7 @@ const renderShop = () => {
     ctx.restore();
   }
 
-  const rightX = 590;
+  const rightX = Math.max(590, W * 0.52);
 
   ctx.save();
   ctx.transform(1, 0, -0.07, 1, 0, 0);
@@ -6643,6 +6719,7 @@ const fadeToState = (newState, callback) => {
   game.fadeCallback = () => {
     if (callback) callback();
     game.state = newState;
+    if (newState === 'map') centerMapOnFloor(Math.max(0, game.floor));
     game.fadeDir = -1;
   };
 };
@@ -6674,6 +6751,7 @@ const startNewRun = (character) => {
   game.stats = { enemiesKilled: 0, cardsPlayed: 0, damageDealt: 0, floorsCleared: 0, elitesKilled: 0, bossesKilled: 0 };
   game.map = generateMap();
   game.menuTime = 0;
+  mapScrollY = 0;
   particles.length = 0;
   floatingTexts.length = 0;
   tweens.length = 0;
@@ -6814,6 +6892,11 @@ canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     return;
   }
+  if (game.state === 'map' && isTouchDevice) {
+    mapScrollY = clamp(mapScrollY + e.deltaY * 0.6, 0, getMapMaxScroll());
+    e.preventDefault();
+    return;
+  }
   if (game.state === 'event' && eventData.pickingRemove) {
     eventData.removeScrollY = Math.max(0, eventData.removeScrollY + e.deltaY * 0.6);
     e.preventDefault();
@@ -6883,6 +6966,7 @@ const applyTouchScroll = (deltaY) => {
   if (game.state === 'trophies') { trophyScrollY = Math.max(0, trophyScrollY + dy); return true; }
   if (game.state === 'bestiary') { bestiaryScrollY = Math.max(0, bestiaryScrollY + dy); return true; }
   if (game.state === 'cardex') { cardexScrollY = Math.max(0, cardexScrollY + dy); return true; }
+  if (game.state === 'map' && isTouchDevice) { mapScrollY = clamp(mapScrollY + dy, 0, getMapMaxScroll()); return true; }
   if (game.state === 'event' && eventData.pickingRemove) { eventData.removeScrollY = Math.max(0, eventData.removeScrollY + dy); return true; }
   if (game.state === 'shop' && shopData.pickingRemove) { shopData.removeScrollY = Math.max(0, shopData.removeScrollY + dy); return true; }
   if (game.state === 'rest' && restData.choosing) {
@@ -7125,7 +7209,7 @@ const handleInput = () => {
         break;
       }
 
-      const endBtnX = 960, endBtnY = 420, endBtnW = 120, endBtnH = 40;
+      const endBtnX = W - 140, endBtnY = 420, endBtnW = 120, endBtnH = 40;
       const endPad = isTouchDevice ? 8 : 0;
       if (isInRect(mouse.x, mouse.y, endBtnX - endPad, endBtnY - endPad, endBtnW + endPad * 2, endBtnH + endPad * 2)) {
         endPlayerTurn();
@@ -7291,7 +7375,7 @@ const handleInput = () => {
         }
       }
 
-      const rightX = 590;
+      const rightX = Math.max(590, W * 0.52);
       for (let i = 0; i < shopData.relics.length; i++) {
         if (shopData.purchased[`relic_${i}`]) continue;
         const item = shopData.relics[i];
@@ -8015,6 +8099,8 @@ const renderTrophies = () => {
   const tierNames = { bronze: 'BRONZE', silver: 'PRATA', gold: 'OURO' };
   let cy = clipTop + 15 - trophyScrollY;
   const cardW = 320, cardH = 52, gap = 6, cols = 3;
+  const tGridW = cols * cardW + (cols - 1) * 12;
+  const tGridStartX = (W - tGridW) / 2;
 
   for (const tier of tiers) {
     const tierTrophies = TROPHIES.filter(tr => tr.tier === tier);
@@ -8023,14 +8109,14 @@ const renderTrophies = () => {
     ctx.font = 'bold italic 16px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillStyle = tierColor;
-    ctx.fillText(`🏆 ${tierNames[tier]}`, 50, cy + 12);
+    ctx.fillText(`🏆 ${tierNames[tier]}`, tGridStartX, cy + 12);
     cy += 28;
 
     for (let i = 0; i < tierTrophies.length; i++) {
       const tr = tierTrophies[i];
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const cx = 40 + col * (cardW + 12);
+      const cx = tGridStartX + col * (cardW + 12);
       const ry = cy + row * (cardH + gap);
       const isUnlocked = trophies.includes(tr.id);
 
