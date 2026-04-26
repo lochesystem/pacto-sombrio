@@ -4755,6 +4755,8 @@ const playCard = (cardIdx, targetEnemyIdx) => {
 const endPlayerTurn = () => {
   if (!combat.playerTurn || combat.animating) return;
   sfxClick();
+  combat.selectedCardIdx = -1;
+  combat.targeting = false;
 
   for (let i = combat.hand.length - 1; i >= 0; i--) {
     const card = combat.hand[i];
@@ -5495,24 +5497,58 @@ const renderCombat = () => {
   }
 
   for (let i = 0; i < combat.hand.length; i++) {
-    if (i === combat.hoveredCardIdx) continue;
+    if (i === combat.hoveredCardIdx || i === combat.selectedCardIdx) continue;
     const card = combat.hand[i];
     const data = getCardData(card);
     const selectable = combat.playerTurn && !combat.animating && data.c <= combat.energy && !data.unplayable;
+    const dimmed = combat.selectedCardIdx >= 0;
+    if (dimmed) ctx.globalAlpha = 0.5;
     drawCard(card.x, card.y, card, card.scale, false, selectable);
+    if (dimmed) ctx.globalAlpha = 1;
   }
-  if (combat.hoveredCardIdx >= 0 && combat.hoveredCardIdx < combat.hand.length) {
+  // Draw hovered card on top (if not the selected one)
+  if (combat.hoveredCardIdx >= 0 && combat.hoveredCardIdx < combat.hand.length && combat.hoveredCardIdx !== combat.selectedCardIdx) {
     const card = combat.hand[combat.hoveredCardIdx];
     const data = getCardData(card);
     const selectable = combat.playerTurn && !combat.animating && data.c <= combat.energy && !data.unplayable;
     drawCard(card.x, card.y, card, card.scale, true, selectable);
   }
+  // Draw selected card last (topmost)
+  if (combat.selectedCardIdx >= 0 && combat.selectedCardIdx < combat.hand.length) {
+    const selCard = combat.hand[combat.selectedCardIdx];
+    const selData = getCardData(selCard);
+    const selectable = combat.playerTurn && !combat.animating && selData.c <= combat.energy && !selData.unplayable;
+    // Glow behind selected card
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const glowColor = selData.t === 'attack' ? 'rgba(200,60,60,' : selData.t === 'skill' ? 'rgba(60,100,200,' : 'rgba(200,160,60,';
+    const selPulse = 0.3 + Math.sin(Date.now() * 0.005) * 0.15;
+    const sg = ctx.createRadialGradient(selCard.x, selCard.y, 0, selCard.x, selCard.y, 80);
+    sg.addColorStop(0, glowColor + selPulse + ')');
+    sg.addColorStop(1, glowColor + '0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(selCard.x - 80, selCard.y - 80, 160, 160);
+    ctx.restore();
+    drawCard(selCard.x, selCard.y, selCard, selCard.scale, true, selectable);
+    // "Clique para usar" hint
+    ctx.save();
+    ctx.font = `bold ${mobC ? 13 : 11}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(232,220,200,0.7)';
+    const hintY = selCard.y + (CARD_H * selCard.scale / 2) + (mobC ? 16 : 12);
+    if (selData.t === 'attack' && selData.tgt === 'one' && selData.special !== 'reaper') {
+      ctx.fillText('Clique novamente ou selecione um inimigo', selCard.x, hintY);
+    } else {
+      ctx.fillText('Clique novamente para usar', selCard.x, hintY);
+    }
+    ctx.restore();
+  }
 
   if (combat.targeting) {
-    ctx.font = '16px sans-serif';
+    ctx.font = `bold ${mobC ? 16 : 14}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffaa44';
-    ctx.fillText('Selecione um inimigo', W / 2, 350);
+    ctx.fillText('⚔ Selecione um inimigo alvo', W / 2, 350);
   }
 
   let relicX = 260;
@@ -7884,7 +7920,14 @@ const handleInput = () => {
 
       if (combat.hoveredCardIdx !== prevHovered) {
         layoutHand();
-        if (combat.hoveredCardIdx >= 0) {
+        // Keep selected card lifted
+        if (combat.selectedCardIdx >= 0 && combat.selectedCardIdx < combat.hand.length) {
+          const selCard = combat.hand[combat.selectedCardIdx];
+          selCard.targetY -= isTouchDevice ? 80 : 65;
+          selCard.targetScale = isTouchDevice ? 1.4 : 1.05;
+          selCard.hover = true;
+        }
+        if (combat.hoveredCardIdx >= 0 && combat.hoveredCardIdx !== combat.selectedCardIdx) {
           const card = combat.hand[combat.hoveredCardIdx];
           card.targetY -= isTouchDevice ? 50 : 40;
           card.targetScale = isTouchDevice ? 1.3 : 0.95;
@@ -7994,6 +8037,7 @@ const handleInput = () => {
         }
       }
 
+      // Targeting mode: click enemy to use selected card
       if (combat.targeting) {
         const eidx = getHoveredEnemyIdx();
         if (eidx >= 0 && combat.selectedCardIdx >= 0) {
@@ -8008,6 +8052,7 @@ const handleInput = () => {
 
       const cidx = getHoveredCardIdx();
       if (cidx >= 0) {
+        // Card is not playable — show warning
         if (!canPlayCard(cidx)) {
           const cData = getCardData(combat.hand[cidx]);
           if (cData.c > combat.energy) {
@@ -8017,25 +8062,44 @@ const handleInput = () => {
           } else if (!combat.playerTurn) {
             showCombatWarning('⏳ Aguarde seu turno');
           }
+          combat.selectedCardIdx = -1;
+          layoutHand();
           break;
         }
-        const card = combat.hand[cidx];
-        const data = getCardData(card);
 
-        if (data.t === 'attack' && data.tgt === 'one' && data.special !== 'reaper') {
-          const alive = combat.enemies.filter(e => !e.dead);
-          if (alive.length === 1) {
-            const enemyIdx = combat.enemies.indexOf(alive[0]);
-            playCard(cidx, enemyIdx);
+        // Two-step card selection: first click selects, second click confirms
+        if (combat.selectedCardIdx === cidx) {
+          // Second click on same card — confirm play
+          const card = combat.hand[cidx];
+          const data = getCardData(card);
+          if (data.t === 'attack' && data.tgt === 'one' && data.special !== 'reaper') {
+            const alive = combat.enemies.filter(e => !e.dead);
+            if (alive.length === 1) {
+              playCard(cidx, combat.enemies.indexOf(alive[0]));
+            } else {
+              combat.targeting = true;
+            }
           } else {
-            combat.selectedCardIdx = cidx;
-            combat.targeting = true;
+            playCard(cidx, -1);
           }
-        } else if (data.t === 'attack' && (data.tgt === 'all' || data.special === 'reaper')) {
-          playCard(cidx, -1);
         } else {
-          playCard(cidx, -1);
+          // First click — select card (lift it up)
+          combat.selectedCardIdx = cidx;
+          combat.targeting = false;
+          layoutHand();
+          const card = combat.hand[cidx];
+          card.targetY -= isTouchDevice ? 80 : 65;
+          card.targetScale = isTouchDevice ? 1.4 : 1.05;
+          card.hover = true;
         }
+        break;
+      }
+
+      // Clicked on empty area — deselect
+      if (combat.selectedCardIdx >= 0) {
+        combat.selectedCardIdx = -1;
+        combat.targeting = false;
+        layoutHand();
         break;
       }
 
