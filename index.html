@@ -4989,7 +4989,7 @@ const renderCombat = () => {
 
   const drawPersonaHUD = () => {
     const hudScale = mobC ? 1.25 : 1;
-    const hx = 8, hy = mobC ? 370 : 408;
+    const hx = 8, hy = mobC ? 310 : 408;
     const pw = 265, ph = 152;
     const skew = -0.12;
     const now = Date.now();
@@ -5368,7 +5368,7 @@ const renderCombat = () => {
   drawPersonaHUD();
 
   const endBtnW = mobC ? 160 : 120, endBtnH = mobC ? 54 : 40;
-  const endBtnX = W - endBtnW - 20, endBtnY = mobC ? 390 : 420;
+  const endBtnX = W - endBtnW - 20, endBtnY = mobC ? 340 : 420;
   const endBtnHov = combat.playerTurn && !combat.animating && isInRect(mouse.x, mouse.y, endBtnX, endBtnY, endBtnW, endBtnH);
   {
     const bx = endBtnX, by = endBtnY, bw = endBtnW, bh = endBtnH;
@@ -5564,7 +5564,7 @@ const renderCombat = () => {
   }
 
   const potSlotW = mobC ? 56 : 42, potSlotH = mobC ? 56 : 42, potGap = mobC ? 8 : 6;
-  const potSlotX = mobC ? 340 : 290, potSlotY = mobC ? 395 : 420;
+  const potSlotX = mobC ? 340 : 290, potSlotY = mobC ? 345 : 420;
   let hoveredPotionTip = null;
   for (let i = 0; i < 3; i++) {
     const px = potSlotX + i * (potSlotW + potGap);
@@ -8104,7 +8104,7 @@ const handleInput = () => {
       }
 
       const endBtnW = isTouchDevice ? 160 : 120, endBtnH = isTouchDevice ? 54 : 40;
-      const endBtnX = W - endBtnW - 20, endBtnY = isTouchDevice ? 390 : 420;
+      const endBtnX = W - endBtnW - 20, endBtnY = isTouchDevice ? 340 : 420;
       const endPad = isTouchDevice ? 8 : 0;
       if (isInRect(mouse.x, mouse.y, endBtnX - endPad, endBtnY - endPad, endBtnW + endPad * 2, endBtnH + endPad * 2)) {
         endPlayerTurn();
