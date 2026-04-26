@@ -135,7 +135,6 @@ let bgmCurrentTrack = 'bmg.mp3';
 const bgmTargetVol = 0.25;
 const BGM_FADE_MS = 1800;
 const BGM_TRACKS = { normal: 'bmg.mp3', boss1: 'boss_1.mp3', boss2: 'boss_2.mp3', boss3: 'boss_3.mp3' };
-try { bgmMuted = localStorage.getItem('bgmMuted') === '1'; } catch (e) {}
 
 const bgmLayers = { current: null, fading: null };
 let bgmFadeTimer = null;
@@ -188,12 +187,10 @@ function switchBGM(track) {
 function toggleBGM() {
   if (!bgmStarted) {
     bgmMuted = false;
-    try { localStorage.setItem('bgmMuted', '0'); } catch (e) {}
     startBGM();
     return;
   }
   bgmMuted = !bgmMuted;
-  try { localStorage.setItem('bgmMuted', bgmMuted ? '1' : '0'); } catch (e) {}
   for (const k of ['current', 'fading']) {
     const a = bgmLayers[k];
     if (!a) continue;
