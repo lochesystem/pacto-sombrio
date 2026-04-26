@@ -130,9 +130,13 @@ const sfxDeath = () => playTone('sawtooth', 200, 30, 0.4);
 
 // ==================== BGM ====================
 let bgm = null;
+let bgmNext = null;
 let bgmStarted = false;
 let bgmMuted = false;
 let bgmCurrentTrack = 'bmg.mp3';
+let bgmTargetVol = 0.25;
+let bgmFading = false;
+const BGM_FADE_DURATION = 1.8;
 const BGM_TRACKS = { normal: 'bmg.mp3', boss1: 'boss_1.mp3', boss2: 'boss_2.mp3', boss3: 'boss_3.mp3' };
 try { bgmMuted = localStorage.getItem('bgmMuted') === '1'; } catch (e) {}
 
@@ -140,7 +144,7 @@ function startBGM() {
   if (bgmStarted) return;
   bgm = new Audio('bmg.mp3');
   bgm.loop = true;
-  bgm.volume = 0.25;
+  bgm.volume = bgmTargetVol;
   bgm.muted = bgmMuted;
   bgm.preload = 'auto';
   bgmCurrentTrack = 'bmg.mp3';
@@ -152,18 +156,41 @@ function startBGM() {
 
 function switchBGM(track) {
   if (!bgmStarted || bgmCurrentTrack === track) return;
-  bgmCurrentTrack = track;
-  if (bgm) {
-    bgm.pause();
-    bgm.src = track;
-    bgm.loop = true;
-    bgm.volume = 0.25;
-    bgm.muted = bgmMuted;
-    bgm.currentTime = 0;
-    bgm.play().catch((err) => {
-      console.warn('[BGM] switchBGM play() falhou:', err && err.name);
-    });
+  if (bgmFading) {
+    if (bgmNext) { bgmNext.pause(); bgmNext.src = ''; bgmNext = null; }
   }
+  bgmCurrentTrack = track;
+  bgmFading = true;
+
+  bgmNext = new Audio(track);
+  bgmNext.loop = true;
+  bgmNext.volume = 0;
+  bgmNext.muted = bgmMuted;
+  bgmNext.preload = 'auto';
+  bgmNext.play().catch((err) => {
+    console.warn('[BGM] crossfade play() falhou:', err && err.name);
+  });
+
+  const fadeStep = 16;
+  const steps = (BGM_FADE_DURATION * 1000) / fadeStep;
+  const volDec = bgmTargetVol / steps;
+  const volInc = bgmTargetVol / steps;
+  let step = 0;
+
+  const fadeInterval = setInterval(() => {
+    step++;
+    if (bgm) bgm.volume = Math.max(0, bgm.volume - volDec);
+    if (bgmNext) bgmNext.volume = Math.min(bgmTargetVol, bgmNext.volume + volInc);
+
+    if (step >= steps) {
+      clearInterval(fadeInterval);
+      if (bgm) { bgm.pause(); bgm.src = ''; }
+      bgm = bgmNext;
+      bgmNext = null;
+      bgmFading = false;
+      if (bgm) bgm.volume = bgmTargetVol;
+    }
+  }, fadeStep);
 }
 
 function toggleBGM() {
@@ -183,10 +210,12 @@ function toggleBGM() {
       });
     }
   }
+  if (bgmNext) bgmNext.muted = bgmMuted;
 }
 
 function setBGMVolume(vol) {
-  if (bgm) bgm.volume = clamp(vol, 0, 1);
+  bgmTargetVol = clamp(vol, 0, 1);
+  if (bgm) bgm.volume = bgmTargetVol;
 }
 
 // ==================== MATH UTILITIES ====================
@@ -9194,7 +9223,7 @@ const render = (dt) => {
 
     // Music toggle (rightmost)
     const mX = W - rightMargin;
-    const playing = bgmStarted && bgm && !bgmMuted && !bgm.paused;
+    const playing = bgmStarted && !bgmMuted && ((bgm && !bgm.paused) || (bgmNext && !bgmNext.paused));
     const mHov = isInRect(mouse.x, mouse.y, mX - btnSize / 2, btnY - btnSize / 2, btnSize, btnSize);
     ctx.save();
     if (mob) {
