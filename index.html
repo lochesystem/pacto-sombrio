@@ -132,6 +132,8 @@ const sfxDeath = () => playTone('sawtooth', 200, 30, 0.4);
 let bgm = null;
 let bgmStarted = false;
 let bgmMuted = false;
+let bgmCurrentTrack = 'bmg.mp3';
+const BGM_TRACKS = { normal: 'bmg.mp3', boss1: 'boss_1.mp3', boss2: 'boss_2.mp3', boss3: 'boss_3.mp3' };
 try { bgmMuted = localStorage.getItem('bgmMuted') === '1'; } catch (e) {}
 
 function startBGM() {
@@ -141,10 +143,27 @@ function startBGM() {
   bgm.volume = 0.25;
   bgm.muted = bgmMuted;
   bgm.preload = 'auto';
+  bgmCurrentTrack = 'bmg.mp3';
   bgm.play().catch((err) => {
     console.warn('[BGM] play() falhou (autoplay bloqueado?):', err && err.name);
   });
   bgmStarted = true;
+}
+
+function switchBGM(track) {
+  if (!bgmStarted || bgmCurrentTrack === track) return;
+  bgmCurrentTrack = track;
+  if (bgm) {
+    bgm.pause();
+    bgm.src = track;
+    bgm.loop = true;
+    bgm.volume = 0.25;
+    bgm.muted = bgmMuted;
+    bgm.currentTime = 0;
+    bgm.play().catch((err) => {
+      console.warn('[BGM] switchBGM play() falhou:', err && err.name);
+    });
+  }
 }
 
 function toggleBGM() {
@@ -4249,6 +4268,12 @@ const startCombat = (encounterType) => {
   }
   saveMeta();
 
+  // Switch to boss music if fighting a boss
+  if (encounterType === 'boss') {
+    const bossTrack = BGM_TRACKS[`boss${game.act}`] || BGM_TRACKS.boss1;
+    switchBGM(bossTrack);
+  }
+
   spawnAmbientParticles(game.act);
   startPlayerTurn();
 };
@@ -4896,6 +4921,8 @@ const endCombat = () => {
   const nodeType = game.map[game.floor][game.nodeIdx].type;
   if (nodeType === 'elite') game.stats.elitesKilled = (game.stats.elitesKilled || 0) + 1;
   if (nodeType === 'boss') game.stats.bossesKilled = (game.stats.bossesKilled || 0) + 1;
+  // Return to normal BGM after boss fight
+  if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal);
 
   if (game.relics.includes('burningBlood')) {
     game.hp = Math.min(game.maxHp, game.hp + 6);
