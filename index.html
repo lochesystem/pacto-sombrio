@@ -394,6 +394,35 @@ const shakeDecay = 0.88;
 let damageFlashTimer = 0;
 let gamePaused = false;
 let showHelp = false;
+
+// ==================== BOSS INTRO ====================
+const BOSS_INTRO = {
+  demonKnight: {
+    title: 'Cavaleiro Demônio',
+    lines: [
+      '"Mais um verme rastejando até meu salão..."',
+      '"Suas preces não serão ouvidas aqui."',
+    ],
+    color: '#cc2222',
+  },
+  lich: {
+    title: 'Lich',
+    lines: [
+      '"Séculos de sabedoria... e me enviam um mortal?"',
+      '"Sua alma será um belo acréscimo à minha coleção."',
+    ],
+    color: '#44cccc',
+  },
+  theVoid: {
+    title: 'O Vazio',
+    lines: [
+      '"Você ousou olhar para o abismo..."',
+      '"E agora o abismo olha de volta. Não há fuga."',
+    ],
+    color: '#9944dd',
+  },
+};
+let bossIntro = null;
 let helpScrollY = 0;
 let trophyScrollY = 0;
 let bestiaryScrollY = 0;
@@ -4311,6 +4340,10 @@ const startCombat = (encounterType) => {
   if (encounterType === 'boss') {
     const bossTrack = BGM_TRACKS[`boss${game.act}`] || BGM_TRACKS.boss1;
     switchBGM(bossTrack);
+    const bossKey = combat.enemies[0] ? combat.enemies[0].key : null;
+    if (bossKey && BOSS_INTRO[bossKey]) {
+      bossIntro = { key: bossKey, timer: 4.5, phase: 0 };
+    }
   }
 
   spawnAmbientParticles(game.act);
@@ -8401,6 +8434,10 @@ const handleInput = () => {
     }
 
     case 'combat': {
+      if (bossIntro) {
+        if (bossIntro.timer < 3.5) bossIntro = null;
+        break;
+      }
       if (tutorial.active && !tutorial.finished) {
         handleTutorialClick();
         break;
@@ -8933,6 +8970,10 @@ const update = (dt) => {
   updateFloatingTexts(dt);
   updateCombatWarning(dt);
   if (game.state === 'combat') updateAmbientParticles(dt);
+  if (bossIntro) {
+    bossIntro.timer -= dt;
+    if (bossIntro.timer <= 0) bossIntro = null;
+  }
 
   if (game.state === 'combat') {
     for (const card of combat.hand) {
@@ -9561,6 +9602,7 @@ const render = (dt) => {
     case 'combat':
       renderCombat();
       if (tutorial.active) renderTutorialOverlay();
+      if (bossIntro) renderBossIntro();
       break;
     case 'rewards': renderRewards(); break;
     case 'event': renderEvent(); break;
@@ -9995,6 +10037,95 @@ const render = (dt) => {
     ctx.fillStyle = `rgba(0,0,0,${clamp(game.fadeAlpha, 0, 1)})`;
     ctx.fillRect(0, 0, W, H);
   }
+};
+
+// ==================== BOSS INTRO OVERLAY ====================
+const renderBossIntro = () => {
+  if (!bossIntro) return;
+  const data = BOSS_INTRO[bossIntro.key];
+  if (!data) return;
+
+  const totalDur = 4.5;
+  const elapsed = totalDur - bossIntro.timer;
+  const mob = isTouchDevice;
+
+  const fadeIn = Math.min(elapsed / 0.6, 1);
+  const fadeOut = bossIntro.timer < 0.8 ? bossIntro.timer / 0.8 : 1;
+  const alpha = fadeIn * fadeOut;
+
+  ctx.save();
+
+  ctx.fillStyle = `rgba(0,0,0,${0.65 * alpha})`;
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.001;
+  const barH = mob ? 160 : 130;
+  const barY = H / 2 - barH / 2;
+
+  const slideIn = easeOutElastic(Math.min(elapsed / 1.2, 1));
+  const slideX = (1 - slideIn) * (-W * 0.5);
+
+  ctx.globalAlpha = alpha;
+
+  const barGrd = ctx.createLinearGradient(0, barY, 0, barY + barH);
+  barGrd.addColorStop(0, 'rgba(10,6,20,0.0)');
+  barGrd.addColorStop(0.15, 'rgba(10,6,20,0.95)');
+  barGrd.addColorStop(0.85, 'rgba(10,6,20,0.95)');
+  barGrd.addColorStop(1, 'rgba(10,6,20,0.0)');
+  ctx.fillStyle = barGrd;
+  ctx.fillRect(0, barY, W, barH);
+
+  ctx.strokeStyle = data.color;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = alpha * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(0, barY + 8);
+  ctx.lineTo(W, barY + 8);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, barY + barH - 8);
+  ctx.lineTo(W, barY + barH - 8);
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+
+  ctx.textAlign = 'center';
+
+  const titleSize = mob ? 28 : 24;
+  ctx.font = `bold ${titleSize}px sans-serif`;
+  ctx.shadowColor = data.color;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = data.color;
+  const titleY = barY + (mob ? 42 : 36) + slideX * 0.01;
+  ctx.save();
+  ctx.translate(W / 2 + slideX, titleY);
+  ctx.fillText(`— ${data.title} —`, 0, 0);
+  ctx.restore();
+  ctx.shadowBlur = 0;
+
+  const lineSize = mob ? 16 : 14;
+  ctx.font = `italic ${lineSize}px sans-serif`;
+  ctx.fillStyle = PAL.ivory;
+
+  for (let i = 0; i < data.lines.length; i++) {
+    const lineDelay = 0.8 + i * 0.7;
+    const lineAlpha = Math.min(Math.max((elapsed - lineDelay) / 0.5, 0), 1) * fadeOut;
+    const lineSlide = (1 - Math.min(Math.max((elapsed - lineDelay) / 0.6, 0), 1)) * 30;
+
+    ctx.globalAlpha = lineAlpha * alpha;
+    const ly = barY + (mob ? 76 : 66) + i * (mob ? 28 : 24) + lineSlide;
+    ctx.fillText(data.lines[i], W / 2, ly);
+  }
+
+  ctx.globalAlpha = alpha;
+  const skipAlpha = elapsed > 1.5 ? Math.min((elapsed - 1.5) / 0.5, 1) * fadeOut : 0;
+  if (skipAlpha > 0) {
+    ctx.globalAlpha = skipAlpha * 0.5 * alpha;
+    ctx.font = `${mob ? 12 : 11}px sans-serif`;
+    ctx.fillStyle = '#8a7a66';
+    ctx.fillText('toque para pular', W / 2, barY + barH - (mob ? 18 : 16));
+  }
+
+  ctx.restore();
 };
 
 // ==================== TUTORIAL OVERLAY ====================
