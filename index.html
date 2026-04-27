@@ -1833,16 +1833,16 @@ const makeEnemy = (key) => {
 
 // ==================== RELIC DATA ====================
 const RELICS = [
-  { id: 'burningBlood', n: 'Sangue Ardente', d: 'Cura 6 HP ao fim do combate.', color: '#cc3333' },
-  { id: 'vajra', n: 'Vajra', d: '+1 de Força permanente.', color: '#cc6633' },
-  { id: 'anchor', n: 'Âncora', d: '10 de Bloqueio no início do combate.', color: '#3366cc' },
-  { id: 'hornCleat', n: 'Grampo de Chifre', d: '14 de Bloqueio no turno 2.', color: '#6666aa' },
-  { id: 'lantern', n: 'Lanterna', d: '+1 Energia no turno 1.', color: '#f39c12' },
-  { id: 'bagOfPrep', n: 'Bolsa de Preparo', d: 'Compra 2 extras no turno 1.', color: '#886633' },
-  { id: 'oddMushroom', n: 'Cogumelo Estranho', d: '+1 turno de Vulnerável.', color: '#66aa44' },
-  { id: 'penNib', n: 'Pena Afiada', d: 'A cada 10 ataques: dano dobrado.', color: '#444466' },
-  { id: 'threadNeedle', n: 'Agulha e Linha', d: '+4 Destreza no início do combate.', color: '#aaaacc' },
-  { id: 'demonSkull', n: 'Crânio Demoníaco', d: '+50% dano quando HP < 50%.', color: '#882222' },
+  { id: 'burningBlood', n: 'Sangue Ardente', d: 'Cura 6 HP ao fim do combate.', color: '#cc3333', icon: '🩸' },
+  { id: 'vajra', n: 'Vajra', d: '+1 de Força permanente.', color: '#cc6633', icon: '⚡' },
+  { id: 'anchor', n: 'Âncora', d: '10 de Bloqueio no início do combate.', color: '#3366cc', icon: '⚓' },
+  { id: 'hornCleat', n: 'Grampo de Chifre', d: '14 de Bloqueio no turno 2.', color: '#6666aa', icon: '🛡' },
+  { id: 'lantern', n: 'Lanterna', d: '+1 Energia no turno 1.', color: '#f39c12', icon: '🔆' },
+  { id: 'bagOfPrep', n: 'Bolsa de Preparo', d: 'Compra 2 extras no turno 1.', color: '#886633', icon: '🎒' },
+  { id: 'oddMushroom', n: 'Cogumelo Estranho', d: '+1 turno de Vulnerável.', color: '#66aa44', icon: '🍄' },
+  { id: 'penNib', n: 'Pena Afiada', d: 'A cada 10 ataques: dano dobrado.', color: '#444466', icon: '✒' },
+  { id: 'threadNeedle', n: 'Agulha e Linha', d: '+4 Destreza no início do combate.', color: '#aaaacc', icon: '🪡' },
+  { id: 'demonSkull', n: 'Crânio Demoníaco', d: '+50% dano quando HP < 50%.', color: '#882222', icon: '💀' },
 ];
 
 // ==================== POTION DATA ====================
@@ -4221,37 +4221,33 @@ const renderMap = () => {
   ctx.fillStyle = '#7733aa';
   ctx.fillText('RELÍQUIAS', 20, footY + footH / 2);
 
+  const mapRelicSize = isTouchDevice ? 30 : 26;
   let relicX = 120;
   const relicPositions = [];
   for (const rId of game.relics) {
     const rel = RELICS.find(r => r.id === rId);
     if (rel) {
       const ry = footY + footH / 2;
+      const rHov = isInRect(mouse.x, mouse.y, relicX - mapRelicSize / 2, ry - mapRelicSize / 2, mapRelicSize, mapRelicSize);
       ctx.save();
       ctx.shadowColor = rel.color;
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = rel.color;
+      ctx.shadowBlur = rHov ? 12 : 6;
+      ctx.fillStyle = rHov ? '#1a1830' : '#0c0a1e';
+      ctx.strokeStyle = rel.color + (rHov ? 'cc' : '66');
+      ctx.lineWidth = rHov ? 2 : 1;
       ctx.beginPath();
-      ctx.arc(relicX, ry, 10, 0, Math.PI * 2);
+      ctx.roundRect(relicX - mapRelicSize / 2, ry - mapRelicSize / 2, mapRelicSize, mapRelicSize, 5);
       ctx.fill();
+      ctx.stroke();
       ctx.restore();
 
-      ctx.fillStyle = '#0a0816';
-      ctx.beginPath();
-      ctx.arc(relicX, ry, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = rel.color;
-      ctx.beginPath();
-      ctx.arc(relicX, ry, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = `${isTouchDevice ? 16 : 14}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#e8dcc888';
-      ctx.fillText(rel.n.slice(0, 4).toUpperCase(), relicX, ry + 16);
-      relicPositions.push({ x: relicX, y: ry, rel });
-      relicX += 40;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rel.icon, relicX, ry + 1);
+
+      relicPositions.push({ x: relicX, y: ry, rel, size: mapRelicSize });
+      relicX += isTouchDevice ? 38 : 34;
     }
   }
 
@@ -4262,28 +4258,24 @@ const renderMap = () => {
 
   ctx.restore();
 
-  // Relic tooltip (drawn OUTSIDE the skew transform)
   for (const rp of relicPositions) {
-    const dx = mouse.x - rp.x;
-    const dy = mouse.y - rp.y;
-    if (dx * dx + dy * dy < 20 * 20) {
+    if (isInRect(mouse.x, mouse.y, rp.x - rp.size / 2, rp.y - rp.size / 2, rp.size, rp.size)) {
       ctx.save();
-      ctx.font = '12px sans-serif';
-      const tipText = `${rp.rel.n}: ${rp.rel.d}`;
-      const tipW = ctx.measureText(tipText).width + 16;
-      const tipH = 26;
+      const fontSize = isTouchDevice ? 13 : 12;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const labelW = ctx.measureText(rp.rel.icon + ' ' + rp.rel.n).width;
+      ctx.font = `${fontSize - 1}px sans-serif`;
+      const descW = ctx.measureText(': ' + rp.rel.d).width;
+      const tipW = labelW + descW + 20;
+      const tipH = isTouchDevice ? 30 : 26;
       let tipX = rp.x - tipW / 2;
-      let tipY = rp.y - tipH - 16;
+      const tipY = rp.y - rp.size / 2 - tipH - 6;
       if (tipX < 5) tipX = 5;
       if (tipX + tipW > W - 5) tipX = W - tipW - 5;
 
       ctx.fillStyle = '#0c0a1eee';
       ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(tipX + tipW, tipY);
-      ctx.lineTo(tipX + tipW + 2, tipY + tipH);
-      ctx.lineTo(tipX - 2, tipY + tipH);
-      ctx.closePath();
+      ctx.roundRect(tipX, tipY, tipW, tipH, 4);
       ctx.fill();
       ctx.strokeStyle = rp.rel.color + '88';
       ctx.lineWidth = 1;
@@ -4292,12 +4284,12 @@ const renderMap = () => {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = rp.rel.color;
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(rp.rel.n, tipX + 8, tipY + tipH / 2);
-      const nameW = ctx.measureText(rp.rel.n).width;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillText(rp.rel.icon + ' ' + rp.rel.n, tipX + 8, tipY + tipH / 2);
+      const fullNameW = ctx.measureText(rp.rel.icon + ' ' + rp.rel.n).width;
       ctx.fillStyle = '#c0b8a8';
-      ctx.font = '11px sans-serif';
-      ctx.fillText(': ' + rp.rel.d, tipX + 8 + nameW, tipY + tipH / 2);
+      ctx.font = `${fontSize - 1}px sans-serif`;
+      ctx.fillText(': ' + rp.rel.d, tipX + 8 + fullNameW, tipY + tipH / 2);
       ctx.restore();
       break;
     }
@@ -5843,14 +5835,27 @@ const renderCombat = () => {
   ctx.restore();
 
   {
-    const _bs = mobC ? 32 : 22;
+    const _bs = mobC ? 38 : 22;
     const _bg = mobC ? 10 : 8;
     const _rm = mobC ? 16 : 14;
-    const _goldX = W - _rm - _bs - _bg - _bs - _bg - _bs - _bg - 6;
-    ctx.font = mobC ? 'bold 14px sans-serif' : '12px sans-serif';
+    const _goldX = W - _rm - _bs - _bg - _bs - _bg - _bs - _bg - 8;
+    const _goldY = mobC ? 22 : 18;
+    ctx.font = mobC ? 'bold 16px sans-serif' : '12px sans-serif';
+    const goldTxt = `Ouro: ${game.gold}`;
+    const goldW = ctx.measureText(goldTxt).width;
+    const gpW = goldW + 16, gpH = mobC ? 28 : 20;
+    const gpX = _goldX - goldW - 8, gpY = _goldY - gpH / 2;
+    ctx.fillStyle = '#0a0818aa';
+    ctx.beginPath();
+    ctx.roundRect(gpX - 4, gpY, gpW, gpH, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#c8a04044';
+    ctx.lineWidth = 1;
+    ctx.stroke();
     ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = PAL.gold;
-    ctx.fillText(`Ouro: ${game.gold}`, _goldX, mobC ? 26 : 22);
+    ctx.fillText(goldTxt, _goldX, _goldY);
   }
 
   for (let i = 0; i < combat.hand.length; i++) {
@@ -5952,15 +5957,34 @@ const renderCombat = () => {
     ctx.restore();
   }
 
-  let relicX = 260;
+  const relicSize = mobC ? 30 : 26;
+  const relicGap = mobC ? 36 : 32;
+  let relicX = mobC ? 240 : 220;
+  const relicY = mobC ? 18 : 16;
+  const combatRelicPos = [];
   for (const rId of game.relics) {
     const rel = RELICS.find(r => r.id === rId);
     if (rel) {
-      ctx.fillStyle = rel.color;
+      const hov = isInRect(mouse.x, mouse.y, relicX - relicSize / 2, relicY - relicSize / 2, relicSize, relicSize);
+      ctx.save();
+      ctx.shadowColor = rel.color;
+      ctx.shadowBlur = hov ? 12 : 6;
+      ctx.fillStyle = hov ? '#1a1830' : '#0c0a1e';
+      ctx.strokeStyle = rel.color + (hov ? 'cc' : '66');
+      ctx.lineWidth = hov ? 2 : 1;
       ctx.beginPath();
-      ctx.arc(relicX, 15, 8, 0, Math.PI * 2);
+      ctx.roundRect(relicX - relicSize / 2, relicY - relicSize / 2, relicSize, relicSize, 5);
       ctx.fill();
-      relicX += 22;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.font = `${mobC ? 16 : 14}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rel.icon, relicX, relicY + 1);
+
+      combatRelicPos.push({ x: relicX, y: relicY, rel, size: relicSize });
+      relicX += relicGap;
     }
   }
 
@@ -6056,6 +6080,43 @@ const renderCombat = () => {
   }
 
   
+
+  for (const rp of combatRelicPos) {
+    if (isInRect(mouse.x, mouse.y, rp.x - rp.size / 2, rp.y - rp.size / 2, rp.size, rp.size)) {
+      ctx.save();
+      const fontSize = mobC ? 13 : 12;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const nameW = ctx.measureText(rp.rel.n).width;
+      ctx.font = `${fontSize - 1}px sans-serif`;
+      const descW = ctx.measureText(': ' + rp.rel.d).width;
+      const tipW = nameW + descW + 20;
+      const tipH = mobC ? 30 : 26;
+      let tipX = rp.x - tipW / 2;
+      const tipY = rp.y + rp.size / 2 + 6;
+      if (tipX < 5) tipX = 5;
+      if (tipX + tipW > W - 5) tipX = W - tipW - 5;
+
+      ctx.fillStyle = '#0c0a1eee';
+      ctx.beginPath();
+      ctx.roundRect(tipX, tipY, tipW, tipH, 4);
+      ctx.fill();
+      ctx.strokeStyle = rp.rel.color + '88';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = rp.rel.color;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillText(rp.rel.icon + ' ' + rp.rel.n, tipX + 8, tipY + tipH / 2);
+      const fullNameW = ctx.measureText(rp.rel.icon + ' ' + rp.rel.n).width;
+      ctx.fillStyle = '#c0b8a8';
+      ctx.font = `${fontSize - 1}px sans-serif`;
+      ctx.fillText(': ' + rp.rel.d, tipX + 8 + fullNameW, tipY + tipH / 2);
+      ctx.restore();
+      break;
+    }
+  }
 
   renderCombatWarning();
   drawVignette();
@@ -8378,7 +8439,7 @@ const handleInput = () => {
 
   {
     const mob = isTouchDevice;
-    const _btnSz = mob ? 32 : 22;
+    const _btnSz = mob ? 38 : 22;
     const _btnY = mob ? 22 : 18;
     const _rightM = mob ? 16 : 14;
     const _mX = W - _rightM;
@@ -8391,10 +8452,9 @@ const handleInput = () => {
 
   sfxClick();
 
-  // Global toolbar button clicks (matching new toolbar layout)
   if (!['menu', 'gameover', 'victory', 'charSelect', 'tutorialAsk', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state)) {
     const mob = isTouchDevice;
-    const btnSize = mob ? 32 : 22;
+    const btnSize = mob ? 38 : 22;
     const btnGap = mob ? 10 : 8;
     const btnY = mob ? 22 : 18;
     const rightMargin = mob ? 16 : 14;
@@ -9762,25 +9822,31 @@ const render = (dt) => {
   // --- Top-right toolbar: [?] [II] [♫] ---
   {
     const mob = isTouchDevice;
-    const btnSize = mob ? 32 : 22;
+    const btnSize = mob ? 38 : 22;
     const btnGap = mob ? 10 : 8;
     const btnY = mob ? 22 : 18;
     const rightMargin = mob ? 16 : 14;
     const inGame = !['menu', 'gameover', 'victory', 'charSelect', 'tutorialAsk', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state);
+
+    const drawToolbarBtn = (cx, cy, hov) => {
+      if (!mob) return;
+      ctx.fillStyle = hov ? '#1a1830cc' : '#0c0a1eaa';
+      ctx.strokeStyle = hov ? '#7733aa88' : '#7733aa33';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(cx - btnSize / 2, cy - btnSize / 2, btnSize, btnSize, 6);
+      ctx.fill();
+      ctx.stroke();
+    };
 
     // Music toggle (rightmost)
     const mX = W - rightMargin;
     const playing = bgmStarted && !bgmMuted && bgmLayers.current && !bgmLayers.current.paused;
     const mHov = isInRect(mouse.x, mouse.y, mX - btnSize / 2, btnY - btnSize / 2, btnSize, btnSize);
     ctx.save();
-    if (mob) {
-      ctx.fillStyle = mHov ? '#e8dcc822' : '#e8dcc80e';
-      ctx.beginPath();
-      ctx.arc(mX, btnY, btnSize * 0.6, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    drawToolbarBtn(mX, btnY, mHov);
     ctx.fillStyle = playing ? (mHov ? '#aaccee' : '#7799bb') : (mHov ? '#667788' : '#445566');
-    ctx.font = `${mob ? 20 : 14}px monospace`;
+    ctx.font = `${mob ? 22 : 14}px monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('♫', mX, btnY);
@@ -9801,14 +9867,9 @@ const render = (dt) => {
       if (showPause) {
         const pbHov = isInRect(mouse.x, mouse.y, pbX - btnSize / 2, btnY - btnSize / 2, btnSize, btnSize);
         ctx.save();
-        if (mob) {
-          ctx.fillStyle = pbHov ? '#e8dcc822' : '#e8dcc80e';
-          ctx.beginPath();
-          ctx.arc(pbX, btnY, btnSize * 0.6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.fillStyle = pbHov ? '#e8dcc877' : '#e8dcc833';
-        const barW = mob ? 5 : 3.5, barH = mob ? 16 : 12, barGap = mob ? 4 : 2.5;
+        drawToolbarBtn(pbX, btnY, pbHov);
+        ctx.fillStyle = pbHov ? '#e8dcc877' : '#e8dcc844';
+        const barW = mob ? 5 : 3.5, barH = mob ? 18 : 12, barGap = mob ? 5 : 2.5;
         ctx.fillRect(pbX - barW - barGap / 2, btnY - barH / 2, barW, barH);
         ctx.fillRect(pbX + barGap / 2, btnY - barH / 2, barW, barH);
         ctx.restore();
@@ -9818,13 +9879,8 @@ const render = (dt) => {
       const hbX = pbX - btnSize - btnGap;
       const hbHov = isInRect(mouse.x, mouse.y, hbX - btnSize / 2, btnY - btnSize / 2, btnSize, btnSize);
       ctx.save();
-      if (mob) {
-        ctx.fillStyle = hbHov ? '#e8dcc822' : '#e8dcc80e';
-        ctx.beginPath();
-        ctx.arc(hbX, btnY, btnSize * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.font = `bold ${mob ? 18 : 13}px sans-serif`;
+      drawToolbarBtn(hbX, btnY, hbHov);
+      ctx.font = `bold ${mob ? 20 : 13}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = hbHov ? '#e8dcc888' : '#e8dcc833';
