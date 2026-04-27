@@ -10160,8 +10160,10 @@ const getTutorialSpotlight = () => {
     case 'enemy': {
       const e = combat.enemies[0];
       if (!e || e.dead) return null;
-      const s = mob ? 130 : 100;
-      return { x: e.x - s / 2, y: e.y - s, w: s, h: s * 1.3 };
+      const sizeMult = { imp: 0.7, cultist: 0.85, skeleton: 0.75, nob: 1.15, demonKnight: 1.25, darkElf: 0.85, chosen: 0.95, snake: 0.6, wraith: 0.95, lich: 1.1, gargoyle: 1.05, soulEater: 0.95, zealot: 0.8, dragon: 1.3, theVoid: 1.4 };
+      const bs = (mob ? 130 : 90) * (sizeMult[e.key] || 1);
+      const spotW = bs * 1.3, spotH = bs * 1.7;
+      return { x: e.x - spotW / 2, y: e.y - bs * 0.8, w: spotW, h: spotH, rounded: 16 };
     }
     case 'end_turn': {
       const endBtnW = mob ? 160 : 120, endBtnH = mob ? 54 : 40;
