@@ -401,6 +401,25 @@ let cardexScrollY = 0;
 let cardexFilter = 'all';
 let mapScrollY = 0;
 
+// ==================== TUTORIAL ====================
+const tutorial = {
+  active: false,
+  step: 0,
+  waitingConfirm: false,
+  askingPlayer: false,
+  enemyTurnDone: false,
+  finished: false,
+};
+const TUTORIAL_STEPS = [
+  { msg: 'Esta é sua mão de cartas. Selecione a carta "Golpe" para atacar.', target: 'card_attack', hint: 'Toque na carta Golpe' },
+  { msg: 'Agora selecione o inimigo para desferir o ataque!', target: 'enemy', hint: 'Toque no inimigo' },
+  { msg: 'O inimigo perdeu vida! Agora use "Defesa" para se proteger.', target: 'card_defend', hint: 'Toque na carta Defesa' },
+  { msg: 'Confirme o uso da Defesa tocando novamente na carta.', target: 'card_defend_confirm', hint: 'Toque novamente' },
+  { msg: 'Sua energia acabou! Toque em "Fim do Turno" para encerrar.', target: 'end_turn', hint: 'Toque no botão' },
+  { msg: 'O inimigo atacou! Seu bloqueio absorveu parte do dano. Observe o HP e bloqueio.', target: 'info', hint: '' },
+  { msg: 'Use suas poções nos slots acima das cartas. Toque na poção para curar!', target: 'potion', hint: 'Toque na poção' },
+];
+
 const triggerShake = (amount) => { shakeAmount = Math.max(shakeAmount, amount); };
 const triggerDamageFlash = () => { damageFlashTimer = 1; };
 
@@ -1927,6 +1946,8 @@ const defaultMeta = () => ({
   totalAltarBuys: 0, maxSingleHit: 0, totalElitesKilled: 0,
   allRelicsEver: [], victories: { pacto: 0, sombra: 0, cinza: 0 },
   enemiesSeen: [],
+  tutorialDone: false,
+  actsCleared: 0,
 });
 
 let meta = defaultMeta();
@@ -2014,8 +2035,8 @@ const checkTrophies = () => {
     if (!has('relicHoarder') && game.relics && game.relics.length >= 5) awardTrophy('relicHoarder');
   }
 
-  if (!has('actClear1') && meta.bestFloor >= 15) awardTrophy('actClear1');
-  if (!has('actClear2') && meta.bestFloor >= 30) awardTrophy('actClear2');
+  if (!has('actClear1') && (meta.actsCleared || 0) >= 1) awardTrophy('actClear1');
+  if (!has('actClear2') && (meta.actsCleared || 0) >= 2) awardTrophy('actClear2');
 
   const nonPlat = TROPHIES.filter(tr => tr.id !== 'platinum');
   if (!has('platinum') && nonPlat.every(tr => t.includes(tr.id))) awardTrophy('platinum');
@@ -4296,6 +4317,206 @@ const startCombat = (encounterType) => {
   startPlayerTurn();
 };
 
+const startTutorialCombat = () => {
+  const mob = isTouchDevice;
+  tutorial._savedPotions = [...game.potions];
+  tutorial._savedHp = game.hp;
+
+  combat.enemies = [];
+  const tutEnemy = {
+    key: 'skeleton', n: 'Esqueleto de Treino', hp: 20, maxHp: 20,
+    block: 0, strength: 0, vulnerable: 0, weak: 0, poison: 0, patIdx: 0,
+    intent: { intent: 'attack', dmg: 5 },
+    pattern: [{ intent: 'attack', dmg: 5 }, { intent: 'attack', dmg: 5 }],
+    special: null, x: W / 2, y: mob ? 180 : 200, shake: 0, dead: false, deathTimer: 0,
+  };
+  combat.enemies.push(tutEnemy);
+
+  combat.hand = [];
+  const tutHand = [
+    makeCard(0), makeCard(0),
+    makeCard(1), makeCard(1),
+  ];
+  combat.drawPile = [];
+  combat.discardPile = [];
+  combat.exhaustPile = [];
+  combat.energy = 3;
+  combat.maxEnergy = 3;
+  combat.turn = 0;
+  combat.playerBlock = 0;
+  combat.playerStrength = 0;
+  combat.playerDexterity = 0;
+  combat.playerVulnerable = 0;
+  combat.playerWeak = 0;
+  combat.playerPoison = 0;
+  combat.playerThorns = 0;
+  combat.selectedCardIdx = -1;
+  combat.targeting = false;
+  combat.hoveredCardIdx = -1;
+  combat.hoveredEnemyIdx = -1;
+  combat.animating = false;
+  combat.animTimer = 0;
+  combat.enemyTurnIdx = -1;
+  combat.playerTurn = true;
+  combat.turnPhase = 'player';
+  combat.powers = { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0 };
+  combat.penNibCount = 0;
+  combat.rampageBonuses = {};
+
+  game.potions = [POTIONS.find(p => p.id === 'heal')];
+
+  for (const card of tutHand) {
+    card.x = 50; card.y = H - 50;
+    card.targetX = 0; card.targetY = 0;
+    card.scale = 0.3; card.targetScale = 0.75;
+    card.hover = false;
+    combat.hand.push(card);
+  }
+
+  combat.turn = 1;
+  combat.playerTurn = true;
+  combat.turnPhase = 'player';
+
+  spawnAmbientParticles(1);
+  layoutHand();
+};
+
+const advanceTutorialStep = () => {
+  tutorial.step++;
+  tutorial.waitingConfirm = false;
+  if (tutorial.step >= TUTORIAL_STEPS.length) {
+    combat.enemies[0].hp = 0;
+    combat.enemies[0].dead = true;
+    combat.enemies[0].deathTimer = 1;
+    finishTutorial();
+  }
+};
+
+const handleTutorialClick = () => {
+  if (!tutorial.active || tutorial.finished) return;
+  if (combat.animating) return;
+
+  const step = TUTORIAL_STEPS[tutorial.step];
+  if (!step) return;
+
+  switch (step.target) {
+    case 'card_attack': {
+      const cidx = getHoveredCardIdx();
+      if (cidx >= 0) {
+        const data = getCardData(combat.hand[cidx]);
+        if (data.n.startsWith('Golpe')) {
+          combat.selectedCardIdx = cidx;
+          combat.targeting = true;
+          layoutHand();
+          const card = combat.hand[cidx];
+          card.targetY -= isTouchDevice ? 90 : 65;
+          card.targetScale = isTouchDevice ? 1.5 : 1.05;
+          card.hover = true;
+          advanceTutorialStep();
+        }
+      }
+      break;
+    }
+    case 'enemy': {
+      const eidx = getHoveredEnemyIdx();
+      if (eidx >= 0 && combat.selectedCardIdx >= 0) {
+        playCard(combat.selectedCardIdx, eidx);
+        advanceTutorialStep();
+      }
+      break;
+    }
+    case 'card_defend': {
+      const cidx = getHoveredCardIdx();
+      if (cidx >= 0) {
+        const data = getCardData(combat.hand[cidx]);
+        if (data.n.startsWith('Defesa')) {
+          combat.selectedCardIdx = cidx;
+          combat.targeting = false;
+          layoutHand();
+          const card = combat.hand[cidx];
+          card.targetY -= isTouchDevice ? 90 : 65;
+          card.targetScale = isTouchDevice ? 1.5 : 1.05;
+          card.hover = true;
+          advanceTutorialStep();
+        }
+      }
+      break;
+    }
+    case 'card_defend_confirm': {
+      const cidx = getHoveredCardIdx();
+      if (cidx >= 0 && combat.selectedCardIdx === cidx) {
+        playCard(cidx, -1);
+        advanceTutorialStep();
+      } else if (combat.selectedCardIdx >= 0) {
+        playCard(combat.selectedCardIdx, -1);
+        advanceTutorialStep();
+      }
+      break;
+    }
+    case 'end_turn': {
+      const mob = isTouchDevice;
+      const endBtnW = mob ? 160 : 120, endBtnH = mob ? 54 : 40;
+      const endBtnX = W - endBtnW - 20, endBtnY = mob ? 340 : 420;
+      const endPad = mob ? 8 : 0;
+      if (isInRect(mouse.x, mouse.y, endBtnX - endPad, endBtnY - endPad, endBtnW + endPad * 2, endBtnH + endPad * 2)) {
+        endPlayerTurn();
+        advanceTutorialStep();
+      }
+      break;
+    }
+    case 'info': {
+      if (tutorial._infoBtnRect) {
+        const r = tutorial._infoBtnRect;
+        if (isInRect(mouse.x, mouse.y, r.x, r.y, r.w, r.h)) {
+          advanceTutorialStep();
+          if (tutorial.step < TUTORIAL_STEPS.length) {
+            combat.hand = [];
+            combat.drawPile = [makeCard(0), makeCard(1)];
+            shuffle(combat.drawPile);
+            combat.energy = 3;
+            combat.maxEnergy = 3;
+            combat.playerBlock = 0;
+            drawCards(2);
+          }
+        }
+      }
+      break;
+    }
+    case 'potion': {
+      const mob = isTouchDevice;
+      const potSlotW = mob ? 56 : 42, potSlotH = mob ? 56 : 42, potGap = mob ? 8 : 6;
+      const potSlotX = mob ? 340 : 290, potSlotY = mob ? 345 : 420;
+      for (let pi = 0; pi < game.potions.length; pi++) {
+        const ppx = potSlotX + pi * (potSlotW + potGap);
+        if (isInRect(mouse.x, mouse.y, ppx, potSlotY, potSlotW, potSlotH)) {
+          usePotion(pi);
+          advanceTutorialStep();
+          break;
+        }
+      }
+      break;
+    }
+  }
+};
+
+const finishTutorial = () => {
+  tutorial.active = false;
+  tutorial.finished = true;
+  tutorial.step = 0;
+  meta.tutorialDone = true;
+  saveMeta();
+
+  game.potions = tutorial._savedPotions || [];
+  game.hp = tutorial._savedHp || game.maxHp;
+
+  addFloatingText(W / 2, H / 2 - 60, 'Tutorial Completo!', PAL.gold, 28);
+  addFloatingText(W / 2, H / 2, 'Você está pronto para a aventura!', PAL.ivory, 18);
+
+  setTimeout(() => {
+    fadeToState('map');
+  }, 2200);
+};
+
 const drawCards = (count) => {
   for (let i = 0; i < count; i++) {
     if (combat.drawPile.length === 0) {
@@ -4919,16 +5140,31 @@ const endEnemyTurns = () => {
 
   if (checkCombatEnd()) return;
 
+  if (tutorial.active && tutorial.step === 5) {
+    tutorial.enemyTurnDone = true;
+    combat.playerTurn = true;
+    combat.turnPhase = 'player';
+    return;
+  }
+
   startPlayerTurn();
 };
 
 const checkCombatEnd = () => {
   const allDead = combat.enemies.every(e => e.dead);
   if (allDead) {
+    if (tutorial.active) {
+      finishTutorial();
+      return true;
+    }
     endCombat();
     return true;
   }
   if (game.hp <= 0) {
+    if (tutorial.active) {
+      game.hp = 1;
+      return false;
+    }
     fadeToState('gameover');
     return true;
   }
@@ -7665,6 +7901,7 @@ const fadeToState = (newState, callback) => {
     if (callback) callback();
     game.state = newState;
     if (newState === 'map') centerMapOnFloor(Math.max(0, game.floor));
+    if (newState === 'gameover' || newState === 'victory') game._endHandled = false;
     game.fadeDir = -1;
   };
 };
@@ -7747,6 +7984,8 @@ const enterNode = (floor, nodeIdx) => {
 const returnToMap = () => {
   const nodeType = game.map[game.floor][game.nodeIdx].type;
   if (nodeType === 'boss') {
+    meta.actsCleared = Math.max(meta.actsCleared || 0, game.act);
+    saveMeta();
     if (game.act < 3) {
       game.act++;
       game.floor = -1;
@@ -8012,7 +8251,7 @@ const handleInput = () => {
           if (pi === 0) { gamePaused = false; }
           else if (pi === 1) { gamePaused = false; showHelp = true; helpScrollY = 0; }
           else if (pi === 2) { gamePaused = false; trophyScrollY = 0; fadeToState('trophies'); }
-          else if (pi === 3) { gamePaused = false; if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal); fadeToState('menu'); }
+          else if (pi === 3) { gamePaused = false; tutorial.active = false; tutorial.finished = false; tutorial.step = 0; if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal); fadeToState('menu'); }
           break;
         }
       }
@@ -8064,7 +8303,7 @@ const handleInput = () => {
   sfxClick();
 
   // Global toolbar button clicks (matching new toolbar layout)
-  if (!['menu', 'gameover', 'victory', 'charSelect', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state)) {
+  if (!['menu', 'gameover', 'victory', 'charSelect', 'tutorialAsk', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state)) {
     const mob = isTouchDevice;
     const btnSize = mob ? 32 : 22;
     const btnGap = mob ? 10 : 8;
@@ -8162,6 +8401,10 @@ const handleInput = () => {
     }
 
     case 'combat': {
+      if (tutorial.active && !tutorial.finished) {
+        handleTutorialClick();
+        break;
+      }
       if (!combat.playerTurn || combat.animating) break;
 
       const potSlotW = isTouchDevice ? 56 : 42, potSlotH = isTouchDevice ? 56 : 42, potGap = isTouchDevice ? 8 : 6;
@@ -8525,6 +8768,8 @@ const handleInput = () => {
     }
 
     case 'gameover': {
+      if (game._endHandled) { fadeToState('menu'); break; }
+      game._endHandled = true;
       const earned = calcSouls(false);
       meta.souls += earned;
       meta.totalRuns++;
@@ -8532,11 +8777,14 @@ const handleInput = () => {
       saveMeta();
       checkTrophies();
       clearRunSave();
+      if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal);
       fadeToState('menu');
       break;
     }
 
     case 'victory': {
+      if (game._endHandled) { fadeToState('menu'); break; }
+      game._endHandled = true;
       const earnedV = calcSouls(true);
       meta.souls += earnedV;
       meta.totalRuns++;
@@ -8547,6 +8795,7 @@ const handleInput = () => {
       saveMeta();
       checkTrophies();
       clearRunSave();
+      if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal);
       fadeToState('menu');
       break;
     }
@@ -8565,7 +8814,14 @@ const handleInput = () => {
           const unlocked = meta.unlockedChars.includes(csChars[i]);
           if (unlocked) {
             startNewRun(csChars[i]);
-            fadeToState('map');
+            if (!meta.tutorialDone) {
+              tutorial.askingPlayer = true;
+              tutorial.active = false;
+              tutorial.step = 0;
+              fadeToState('tutorialAsk');
+            } else {
+              fadeToState('map');
+            }
           } else if (meta.souls >= charCosts[i]) {
             meta.souls -= charCosts[i];
             meta.unlockedChars.push(csChars[i]);
@@ -8578,6 +8834,29 @@ const handleInput = () => {
 
       if (isInRect(mouse.x, mouse.y, 30, H - 70, 180, 46)) {
         fadeToState('menu');
+      }
+      break;
+    }
+
+    case 'tutorialAsk': {
+      const bw = 220, bh = 56, bgap = 40;
+      const bx1 = W / 2 - bw - bgap / 2, bx2 = W / 2 + bgap / 2;
+      const by = H / 2 + 40;
+      if (isInRect(mouse.x, mouse.y, bx1, by, bw, bh)) {
+        tutorial.askingPlayer = false;
+        tutorial.active = true;
+        tutorial.step = 0;
+        tutorial.waitingConfirm = false;
+        tutorial.enemyTurnDone = false;
+        tutorial.finished = false;
+        startTutorialCombat();
+        fadeToState('combat');
+      } else if (isInRect(mouse.x, mouse.y, bx2, by, bw, bh)) {
+        tutorial.askingPlayer = false;
+        tutorial.active = false;
+        meta.tutorialDone = true;
+        saveMeta();
+        fadeToState('map');
       }
       break;
     }
@@ -8678,12 +8957,13 @@ const update = (dt) => {
           combat.enemyTurnIdx++;
           combat.animTimer = 0.55;
 
-          if (game.hp <= 0) {
+          if (game.hp <= 0 && !tutorial.active) {
             combat.animating = false;
             combat.turnPhase = 'player';
             fadeToState('gameover');
             return;
           }
+          if (game.hp <= 0 && tutorial.active) game.hp = 1;
         } else {
           combat.animating = false;
           combat.turnPhase = 'player';
@@ -9278,7 +9558,10 @@ const render = (dt) => {
   switch (game.state) {
     case 'menu': renderMenu(dt); break;
     case 'map': renderMap(); break;
-    case 'combat': renderCombat(); break;
+    case 'combat':
+      renderCombat();
+      if (tutorial.active) renderTutorialOverlay();
+      break;
     case 'rewards': renderRewards(); break;
     case 'event': renderEvent(); break;
     case 'shop': renderShop(); break;
@@ -9286,6 +9569,7 @@ const render = (dt) => {
     case 'gameover': renderGameOver(); break;
     case 'victory': renderVictory(); break;
     case 'charSelect': renderCharSelect(); break;
+    case 'tutorialAsk': renderTutorialAsk(); break;
     case 'altar': renderAltar(); break;
     case 'bestiary': renderBestiary(); break;
     case 'cardex': renderCardex(); break;
@@ -9320,7 +9604,7 @@ const render = (dt) => {
     const btnGap = mob ? 10 : 8;
     const btnY = mob ? 22 : 18;
     const rightMargin = mob ? 16 : 14;
-    const inGame = !['menu', 'gameover', 'victory', 'charSelect', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state);
+    const inGame = !['menu', 'gameover', 'victory', 'charSelect', 'tutorialAsk', 'altar', 'trophies', 'bestiary', 'cardex'].includes(game.state);
 
     // Music toggle (rightmost)
     const mX = W - rightMargin;
@@ -9711,6 +9995,233 @@ const render = (dt) => {
     ctx.fillStyle = `rgba(0,0,0,${clamp(game.fadeAlpha, 0, 1)})`;
     ctx.fillRect(0, 0, W, H);
   }
+};
+
+// ==================== TUTORIAL OVERLAY ====================
+const getTutorialSpotlight = () => {
+  const mob = isTouchDevice;
+  const step = TUTORIAL_STEPS[tutorial.step];
+  if (!step) return null;
+
+  switch (step.target) {
+    case 'card_attack': {
+      for (let i = 0; i < combat.hand.length; i++) {
+        const c = combat.hand[i];
+        const data = getCardData(c);
+        if (data.n.startsWith('Golpe')) {
+          const w = CARD_W * c.scale, h = CARD_H * c.scale;
+          return { x: c.x - w / 2 - 8, y: c.y - h / 2 - 8, w: w + 16, h: h + 16, cardIdx: i };
+        }
+      }
+      return null;
+    }
+    case 'card_defend':
+    case 'card_defend_confirm': {
+      for (let i = 0; i < combat.hand.length; i++) {
+        const c = combat.hand[i];
+        const data = getCardData(c);
+        if (data.n.startsWith('Defesa')) {
+          const w = CARD_W * c.scale, h = CARD_H * c.scale;
+          return { x: c.x - w / 2 - 8, y: c.y - h / 2 - 8, w: w + 16, h: h + 16, cardIdx: i };
+        }
+      }
+      return null;
+    }
+    case 'enemy': {
+      const e = combat.enemies[0];
+      if (!e || e.dead) return null;
+      const s = mob ? 130 : 100;
+      return { x: e.x - s / 2, y: e.y - s, w: s, h: s * 1.3 };
+    }
+    case 'end_turn': {
+      const endBtnW = mob ? 160 : 120, endBtnH = mob ? 54 : 40;
+      const endBtnX = W - endBtnW - 20, endBtnY = mob ? 340 : 420;
+      return { x: endBtnX - 6, y: endBtnY - 6, w: endBtnW + 12, h: endBtnH + 12 };
+    }
+    case 'potion': {
+      const potSlotW = mob ? 56 : 42, potSlotH = mob ? 56 : 42;
+      const potSlotX = mob ? 340 : 290, potSlotY = mob ? 345 : 420;
+      return { x: potSlotX - 6, y: potSlotY - 6, w: potSlotW + 12, h: potSlotH + 12 };
+    }
+    case 'info':
+      return null;
+    default:
+      return null;
+  }
+};
+
+const renderTutorialOverlay = () => {
+  if (!tutorial.active || tutorial.finished) return;
+  const step = TUTORIAL_STEPS[tutorial.step];
+  if (!step) return;
+
+  const t = Date.now() / 1000;
+  const spot = getTutorialSpotlight();
+
+  ctx.save();
+
+  if (spot) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    const pad = 6 + Math.sin(t * 3) * 3;
+    ctx.roundRect(spot.x - pad, spot.y - pad, spot.w + pad * 2, spot.h + pad * 2, 14);
+    ctx.closePath();
+    ctx.fill('evenodd');
+
+    ctx.strokeStyle = PAL.gold;
+    ctx.lineWidth = 2.5 + Math.sin(t * 4) * 0.8;
+    ctx.shadowColor = PAL.gold;
+    ctx.shadowBlur = 12 + Math.sin(t * 3) * 5;
+    ctx.beginPath();
+    ctx.roundRect(spot.x - pad, spot.y - pad, spot.w + pad * 2, spot.h + pad * 2, 14);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    const arrowY = spot.y - 28 + Math.sin(t * 4) * 6;
+    const arrowX = spot.x + spot.w / 2;
+    ctx.fillStyle = PAL.gold;
+    ctx.beginPath();
+    ctx.moveTo(arrowX - 10, arrowY - 12);
+    ctx.lineTo(arrowX + 10, arrowY - 12);
+    ctx.lineTo(arrowX, arrowY);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const mob = isTouchDevice;
+  const boxW = Math.min(W - 40, 560);
+  const boxH = step.target === 'info' ? 140 : 100;
+  const boxX = W / 2 - boxW / 2;
+  const boxY = step.target === 'enemy' ? H - boxH - 30 : 20;
+
+  ctx.fillStyle = 'rgba(16,10,40,0.92)';
+  ctx.strokeStyle = PAL.gold;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = PAL.gold;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 14);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = PAL.ivory;
+  ctx.font = `bold ${mob ? 17 : 15}px sans-serif`;
+  ctx.textAlign = 'center';
+  const lines = step.msg.split('\n');
+  const lineH = mob ? 22 : 20;
+  const textStartY = boxY + boxH / 2 - (lines.length - 1) * lineH / 2;
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], W / 2, textStartY + i * lineH);
+  }
+
+  if (step.target === 'info') {
+    const btnW = 180, btnH = 44;
+    const btnX = W / 2 - btnW / 2, btnY = boxY + boxH - btnH - 12;
+    const hov = isInRect(mouse.x, mouse.y, btnX, btnY, btnW, btnH);
+
+    ctx.fillStyle = hov ? 'rgba(60,40,20,0.9)' : 'rgba(30,20,50,0.9)';
+    ctx.strokeStyle = PAL.gold;
+    ctx.lineWidth = hov ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(btnX, btnY, btnW, btnH, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = PAL.gold;
+    ctx.font = `bold ${mob ? 16 : 14}px sans-serif`;
+    ctx.fillText('Entendi!', W / 2, btnY + btnH / 2 + 5);
+
+    tutorial._infoBtnRect = { x: btnX, y: btnY, w: btnW, h: btnH };
+  } else {
+    tutorial._infoBtnRect = null;
+  }
+
+  const stepText = `Passo ${tutorial.step + 1} de ${TUTORIAL_STEPS.length}`;
+  ctx.fillStyle = 'rgba(200,180,220,0.6)';
+  ctx.font = `${mob ? 12 : 11}px sans-serif`;
+  ctx.fillText(stepText, W / 2, boxY + boxH + 16);
+
+  ctx.restore();
+};
+
+// ==================== TUTORIAL ASK SCREEN ====================
+const renderTutorialAsk = () => {
+  ctx.fillStyle = '#08061a';
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.001;
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = '#7733aa';
+  ctx.lineWidth = 1;
+  const lineOff = (t * 15) % 60;
+  for (let li = -H; li < W + H; li += 60) {
+    ctx.beginPath();
+    ctx.moveTo(li + lineOff, 0);
+    ctx.lineTo(li + lineOff - H * 0.6, H);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  ctx.save();
+
+  const panelW = 600, panelH = 260;
+  const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2 - 20;
+  ctx.fillStyle = 'rgba(20,14,46,0.92)';
+  ctx.strokeStyle = PAL.gold;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(px, py, panelW, panelH, 18);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = PAL.ivory;
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚔ Tutorial de Combate ⚔', W / 2, py + 50);
+
+  ctx.fillStyle = '#c8b8e0';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('Deseja aprender as mecânicas básicas do jogo', W / 2, py + 90);
+  ctx.fillText('em uma batalha guiada?', W / 2, py + 112);
+
+  const bw = 220, bh = 56, bgap = 40;
+  const bx1 = W / 2 - bw - bgap / 2, bx2 = W / 2 + bgap / 2;
+  const by = H / 2 + 40;
+
+  for (let bi = 0; bi < 2; bi++) {
+    const bx = bi === 0 ? bx1 : bx2;
+    const label = bi === 0 ? 'Sim, vamos lá!' : 'Pular';
+    const hovered = isInRect(mouse.x, mouse.y, bx, by, bw, bh);
+    const baseCol = bi === 0 ? PAL.gold : '#665577';
+    const glowCol = bi === 0 ? PAL.gold : '#8877aa';
+
+    if (hovered) {
+      ctx.shadowColor = glowCol;
+      ctx.shadowBlur = 18;
+    }
+    ctx.fillStyle = hovered ? (bi === 0 ? '#3a2a10' : '#2a2040') : 'rgba(20,14,46,0.8)';
+    ctx.strokeStyle = baseCol;
+    ctx.lineWidth = hovered ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = bi === 0 ? PAL.gold : PAL.ivory;
+    ctx.font = `bold ${bi === 0 ? 18 : 16}px sans-serif`;
+    ctx.fillText(label, bx + bw / 2, by + bh / 2 + 6);
+  }
+
+  ctx.restore();
+  drawVignette();
 };
 
 // ==================== GAME LOOP ====================
