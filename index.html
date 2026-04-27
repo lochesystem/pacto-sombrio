@@ -2035,13 +2035,14 @@ const loadMeta = () => {
   } catch(e) { meta = defaultMeta(); }
 };
 
-const saveRun = () => {
+const saveRun = (savedState) => {
   try {
     const runData = {
       act: game.act, floor: game.floor, nodeIdx: game.nodeIdx,
       maxHp: game.maxHp, hp: game.hp, gold: game.gold,
       deck: game.deck, relics: game.relics, potions: game.potions,
       stats: game.stats, map: game.map, character: game.character || 'pacto',
+      savedState: savedState || 'map',
     };
     localStorage.setItem(RUN_KEY, JSON.stringify(runData));
   } catch(e) {}
@@ -2056,6 +2057,7 @@ const loadRun = () => {
     game.maxHp = d.maxHp; game.hp = d.hp; game.gold = d.gold;
     game.deck = d.deck; game.relics = d.relics; game.potions = d.potions || [];
     game.stats = d.stats; game.map = d.map; game.character = d.character || 'pacto';
+    game._savedState = d.savedState || 'map';
     return true;
   } catch(e) { return false; }
 };
@@ -7705,9 +7707,8 @@ const enterNode = (floor, nodeIdx) => {
   game.floor = floor;
   game.nodeIdx = nodeIdx;
   game.map[floor][nodeIdx].visited = true;
-  saveRun();
-
   const nodeType = game.map[floor][nodeIdx].type;
+  saveRun(nodeType);
 
   switch (nodeType) {
     case 'combat':
@@ -7751,11 +7752,13 @@ const returnToMap = () => {
       game.floor = -1;
       game.nodeIdx = -1;
       game.map = generateMap();
+      saveRun('map');
       fadeToState('map');
     } else {
       fadeToState('victory');
     }
   } else {
+    saveRun('map');
     fadeToState('map');
   }
 };
@@ -8009,7 +8012,7 @@ const handleInput = () => {
           if (pi === 0) { gamePaused = false; }
           else if (pi === 1) { gamePaused = false; showHelp = true; helpScrollY = 0; }
           else if (pi === 2) { gamePaused = false; trophyScrollY = 0; fadeToState('trophies'); }
-          else if (pi === 3) { gamePaused = false; fadeToState('menu'); }
+          else if (pi === 3) { gamePaused = false; if (bgmCurrentTrack !== BGM_TRACKS.normal) switchBGM(BGM_TRACKS.normal); fadeToState('menu'); }
           break;
         }
       }
@@ -8094,7 +8097,36 @@ const handleInput = () => {
           if (mi === 0) {
             fadeToState('charSelect');
           } else if (mi === 1 && hasRunSave()) {
-            if (loadRun()) fadeToState('map');
+            if (loadRun()) {
+              const ss = game._savedState || 'map';
+              if (ss === 'map') {
+                fadeToState('map');
+              } else {
+                // Re-enter the node (combat, event, shop, rest)
+                fadeToState('map', () => {
+                  setTimeout(() => {
+                    const nodeType = game.map[game.floor] && game.map[game.floor][game.nodeIdx] && game.map[game.floor][game.nodeIdx].type;
+                    if (!nodeType) return;
+                    switch (nodeType) {
+                      case 'combat': fadeToState('combat', () => startCombat('normal')); break;
+                      case 'elite': fadeToState('combat', () => startCombat('elite')); break;
+                      case 'boss': fadeToState('combat', () => startCombat('boss')); break;
+                      case 'event':
+                        fadeToState('event', () => {
+                          eventData.current = EVENTS[randInt(0, EVENTS.length - 1)];
+                          eventData.done = false; eventData.resultText = '';
+                          eventData.pickingCard = false; eventData.pickingRemove = false;
+                          eventData.cardChoices = []; eventData.removeChoices = [];
+                          eventData.removeScrollY = 0;
+                        }); break;
+                      case 'shop': fadeToState('shop', () => initShop()); break;
+                      case 'rest': fadeToState('rest', () => { restData.choosing = false; }); break;
+                      default: fadeToState('map'); break;
+                    }
+                  }, 100);
+                });
+              }
+            }
           } else if (mi === 2) {
             fadeToState('altar');
           } else if (mi === 3) {
