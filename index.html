@@ -1658,11 +1658,34 @@ const getCardData = (card) => {
   if (!card.upgraded) return base;
   const u = Object.assign({}, base);
   u.n = base.n + '+';
-  if (u.dmg) u.dmg = Math.ceil(u.dmg * 1.3);
-  if (u.blk) u.blk = Math.ceil(u.blk * 1.3);
-  if (u.draw) u.draw = u.draw + 1;
-  if (u.vuln) u.vuln = u.vuln + 1;
-  if (u.weak) u.weak = u.weak + 1;
+  let d = u.d;
+  if (u.dmg) {
+    const nv = Math.ceil(u.dmg * 1.3);
+    d = d.replace(u.dmg + ' de dano', nv + ' de dano').replace(u.dmg + ' dano', nv + ' dano');
+    u.dmg = nv;
+  }
+  if (u.blk) {
+    const nv = Math.ceil(u.blk * 1.3);
+    d = d.replace(u.blk + ' de bloqueio', nv + ' de bloqueio').replace(u.blk + ' bloqueio', nv + ' bloqueio');
+    u.blk = nv;
+  }
+  if (u.draw) {
+    const nv = u.draw + 1;
+    d = d.replace('Compra ' + u.draw + ' carta.', 'Compra ' + nv + ' cartas.');
+    d = d.replace('Compra ' + u.draw, 'Compra ' + nv);
+    u.draw = nv;
+  }
+  if (u.vuln) {
+    const nv = u.vuln + 1;
+    d = d.replace(u.vuln + ' Vulnerável', nv + ' Vulnerável');
+    u.vuln = nv;
+  }
+  if (u.weak) {
+    const nv = u.weak + 1;
+    d = d.replace(u.weak + ' Fraqueza', nv + ' Fraqueza');
+    u.weak = nv;
+  }
+  u.d = d;
   return u;
 };
 const makeStarterDeck = (character) => {
@@ -6956,6 +6979,7 @@ const processEventChoice = (choiceAction) => {
 const renderRest = () => {
   ctx.fillStyle = '#08061a';
   ctx.fillRect(0, 0, W, H);
+  let restHovCard = null;
 
   const px = W / 2 - 310, py = 60, pw = 620, ph = 580;
   drawPersonaPanel(px, py, pw, ph);
@@ -7067,6 +7091,7 @@ const renderRest = () => {
       if (cy < clipTop - 120 || cy > clipBot + 120) continue;
       const hov = isInRect(mouse.x, mouse.y, cx - CARD_W * 0.4, cy - CARD_H * 0.4, CARD_W * 0.8, CARD_H * 0.8) && cy > clipTop && cy < clipBot;
       drawCard(cx, cy, upgradeable[i], hov ? 0.85 : 0.75, hov, true);
+      if (hov) restHovCard = upgradeable[i];
     }
     ctx.restore();
 
@@ -7092,6 +7117,20 @@ const renderRest = () => {
     const cancelX = W / 2 - 80, cancelY = H - 85, cancelW = 160, cancelH = 40;
     const cancelHov = isInRect(mouse.x, mouse.y, cancelX, cancelY, cancelW, cancelH);
     drawPersonaBtn(cancelX, cancelY, cancelW, cancelH, 'VOLTAR', cancelHov);
+  }
+
+  if (restHovCard) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, W, H);
+    const zoomScale = isTouchDevice ? 1.6 : 1.4;
+    const fakeUpgraded = { id: restHovCard.id, uid: restHovCard.uid, upgraded: true };
+    drawCard(W / 2, H / 2 - 20, fakeUpgraded, zoomScale, false, false);
+    ctx.font = `bold ${isTouchDevice ? 15 : 13}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(200,180,220,0.6)';
+    ctx.fillText('Versão melhorada', W / 2, H / 2 + CARD_H * zoomScale / 2 + 25);
+    ctx.restore();
   }
 
   drawVignette();
