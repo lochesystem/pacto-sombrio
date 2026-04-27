@@ -10151,9 +10151,8 @@ const getTutorialSpotlight = () => {
       const data = getCardData(c);
       if (data.n.startsWith(namePrefix)) {
         const s = c.scale;
-        const w = CARD_W * s, h = CARD_H * s;
-        const pad = mob ? 8 : 5;
-        return { x: c.x - w / 2 - pad, y: c.y - h / 2 - pad, w: w + pad * 2, h: h + pad * 2, cardIdx: i, rounded: 8 };
+        const w = CARD_W * s * 0.92, h = CARD_H * s * 0.95;
+        return { x: c.x - w / 2, y: c.y - h / 2, w: w, h: h, cardIdx: i, rounded: 8 };
       }
     }
     return null;
