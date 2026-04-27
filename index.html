@@ -7610,7 +7610,7 @@ const renderMenu = (dt) => {
 
   // --- Menu options ---
   const hasSave = hasRunSave();
-  const menuItems = ['NOVO JOGO', 'CONTINUAR', 'ALTAR DAS ALMAS', 'BESTIÁRIO', 'CARTAS', 'TROFÉUS'];
+  const menuItems = ['NOVO JOGO', 'CONTINUAR', 'ALTAR DAS ALMAS', 'BESTIÁRIO', 'CARTAS', 'TROFÉUS', 'TUTORIAL'];
   const menuSpacing = isTouchDevice ? 55 : 45;
   const menuBtnH = isTouchDevice ? 42 : 32;
   const menuBtnW = isTouchDevice ? 440 : 302;
@@ -8364,7 +8364,7 @@ const handleInput = () => {
     case 'menu': {
       const menuSpacing = isTouchDevice ? 55 : 45;
       const menuStartY = isTouchDevice ? 320 : 340;
-      for (let mi = 0; mi < 6; mi++) {
+      for (let mi = 0; mi < 7; mi++) {
         const iy = menuStartY + mi * menuSpacing;
         if (isInRect(mouse.x, mouse.y, 50, iy - 10, isTouchDevice ? 520 : 400, menuSpacing)) {
           if (mi === 0) {
@@ -8412,6 +8412,16 @@ const handleInput = () => {
           } else if (mi === 5) {
             trophyScrollY = 0;
             fadeToState('trophies');
+          } else if (mi === 6) {
+            startNewRun(game.character || 'pacto');
+            tutorial.askingPlayer = false;
+            tutorial.active = true;
+            tutorial.step = 0;
+            tutorial.waitingConfirm = false;
+            tutorial.enemyTurnDone = false;
+            tutorial.finished = false;
+            startTutorialCombat();
+            fadeToState('combat');
           }
           break;
         }
