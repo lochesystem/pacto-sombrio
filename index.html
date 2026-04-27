@@ -10135,30 +10135,28 @@ const getTutorialSpotlight = () => {
   const step = TUTORIAL_STEPS[tutorial.step];
   if (!step) return null;
 
+  const getCardSpot = (namePrefix) => {
+    for (let i = 0; i < combat.hand.length; i++) {
+      const c = combat.hand[i];
+      const data = getCardData(c);
+      if (data.n.startsWith(namePrefix)) {
+        const s = c.targetScale || c.scale;
+        const cx = c.targetX || c.x;
+        const cy = c.targetY || c.y;
+        const w = CARD_W * s, h = CARD_H * s;
+        const pad = mob ? 10 : 6;
+        return { x: cx - w / 2 - pad, y: cy - h / 2 - pad, w: w + pad * 2, h: h + pad * 2, cardIdx: i, rounded: 10 };
+      }
+    }
+    return null;
+  };
+
   switch (step.target) {
-    case 'card_attack': {
-      for (let i = 0; i < combat.hand.length; i++) {
-        const c = combat.hand[i];
-        const data = getCardData(c);
-        if (data.n.startsWith('Golpe')) {
-          const w = CARD_W * c.scale, h = CARD_H * c.scale;
-          return { x: c.x - w / 2 - 8, y: c.y - h / 2 - 8, w: w + 16, h: h + 16, cardIdx: i };
-        }
-      }
-      return null;
-    }
+    case 'card_attack':
+      return getCardSpot('Golpe');
     case 'card_defend':
-    case 'card_defend_confirm': {
-      for (let i = 0; i < combat.hand.length; i++) {
-        const c = combat.hand[i];
-        const data = getCardData(c);
-        if (data.n.startsWith('Defesa')) {
-          const w = CARD_W * c.scale, h = CARD_H * c.scale;
-          return { x: c.x - w / 2 - 8, y: c.y - h / 2 - 8, w: w + 16, h: h + 16, cardIdx: i };
-        }
-      }
-      return null;
-    }
+    case 'card_defend_confirm':
+      return getCardSpot('Defesa');
     case 'enemy': {
       const e = combat.enemies[0];
       if (!e || e.dead) return null;
@@ -10193,11 +10191,15 @@ const renderTutorialOverlay = () => {
   ctx.save();
 
   if (spot) {
+    const pulse = 2 + Math.sin(t * 3) * 2;
+    const r = spot.rounded || 14;
+    const sx = spot.x - pulse, sy = spot.y - pulse;
+    const sw = spot.w + pulse * 2, sh = spot.h + pulse * 2;
+
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.beginPath();
     ctx.rect(0, 0, W, H);
-    const pad = 6 + Math.sin(t * 3) * 3;
-    ctx.roundRect(spot.x - pad, spot.y - pad, spot.w + pad * 2, spot.h + pad * 2, 14);
+    ctx.roundRect(sx, sy, sw, sh, r);
     ctx.closePath();
     ctx.fill('evenodd');
 
@@ -10206,12 +10208,12 @@ const renderTutorialOverlay = () => {
     ctx.shadowColor = PAL.gold;
     ctx.shadowBlur = 12 + Math.sin(t * 3) * 5;
     ctx.beginPath();
-    ctx.roundRect(spot.x - pad, spot.y - pad, spot.w + pad * 2, spot.h + pad * 2, 14);
+    ctx.roundRect(sx, sy, sw, sh, r);
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    const arrowY = spot.y - 28 + Math.sin(t * 4) * 6;
-    const arrowX = spot.x + spot.w / 2;
+    const arrowY = sy - 22 + Math.sin(t * 4) * 6;
+    const arrowX = sx + sw / 2;
     ctx.fillStyle = PAL.gold;
     ctx.beginPath();
     ctx.moveTo(arrowX - 10, arrowY - 12);
