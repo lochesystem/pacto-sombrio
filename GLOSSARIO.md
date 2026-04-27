@@ -7,17 +7,21 @@
 
 ## Personagens
 
-| ID | Nome | Subtítulo | HP | Ouro | Custo (Almas) | Descrição |
-|----|------|-----------|-----|------|---------------|-----------|
-| `pacto` | PACTO | Guerreiro Equilibrado | 80 | 99 | Desbloqueado | Força + Bloqueio |
-| `sombra` | SOMBRA | Assassino Venenoso | 70 | 99 | 150 | Veneno + Furtividade |
-| `cinza` | CINZA | Mago Sombrio | 65 | 80 | 300 | Poderes + Canalização |
+| ID | Nome | Subtítulo | HP | Ouro | Desbloqueio | Descrição |
+|----|------|-----------|-----|------|-------------|-----------|
+| `pacto` | GUERREIRO | Espada e Escudo | 80 | 99 | Desbloqueado | Força + Bloqueio |
+| `sombra` | ASSASSINO | Veneno e Furtividade | 70 | 99 | 150 Almas | Veneno + Furtividade |
+| `cinza` | MAGO SOMBRIO | Poderes Arcanos | 65 | 80 | 300 Almas | Poderes + Canalização |
+| `luz` | MAGO DA LUZ | Radiância Sagrada | 60 | 90 | Vencer com os 3 originais | Cura + Radiância |
+| `druida` | DRUIDA | Natureza Selvagem | 75 | 85 | Evento RNG (Espírito da Floresta) | Espinhos + Regeneração |
 
 ### Decks Iniciais
 
-- **Pacto**: 5× Golpe (id 0), 4× Defesa (id 1), 1× Pancada (id 2)
-- **Sombra**: 4× Esquiva (id 36), 4× Punhal Furtivo (id 37), 2× Nuvem Tóxica (id 38)
-- **Cinza**: 4× Barreira Mental (id 46), 4× Canalizar (id 47), 2× Drenar Alma (id 48)
+- **Guerreiro**: 5× Golpe (id 0), 4× Defesa (id 1), 1× Pancada (id 2)
+- **Assassino**: 4× Esquiva (id 36), 4× Punhal Furtivo (id 37), 2× Nuvem Tóxica (id 38)
+- **Mago Sombrio**: 4× Barreira Mental (id 46), 4× Canalizar (id 47), 2× Drenar Alma (id 48)
+- **Mago da Luz**: 4× Escudo Sagrado (id 56), 4× Raio de Luz (id 55), 2× Oração (id 57)
+- **Druida**: 4× Espinhos Vivos (id 65), 4× Garras da Fera (id 66), 2× Regenerar (id 67)
 
 ---
 
@@ -113,6 +117,36 @@
 | 53 | Nova Arcana | attack | cinza_rare | 4 | Causa 50 de dano. Exaure. | dmg: 50, tgt: 'one', exhaust: true |
 | 54 | Transcendência | power | cinza_rare | 3 | Início turno: Compra 2 extras. | special: 'transcend' |
 
+### Cartas do Mago da Luz
+
+| ID | Nome | Tipo | Raridade | Custo | Descrição | Campos |
+|----|------|------|----------|-------|-----------|--------|
+| 55 | Raio de Luz | attack | starter_luz | 1 | Causa 6 de dano. Cura 2 HP. | dmg: 6, healSelf: 2, tgt: 'one' |
+| 56 | Escudo Sagrado | skill | starter_luz | 1 | Ganha 8 de bloqueio. | blk: 8 |
+| 57 | Oração | skill | starter_luz | 0 | +1 Radiância. Compra 1. | draw: 1, special: 'radiance' |
+| 58 | Purificar | skill | luz_common | 1 | Remove 1 debuff. Ganha 6 de bloqueio. | blk: 6, special: 'purify' |
+| 59 | Lança Divina | attack | luz_common | 2 | Causa 14 de dano. +4 por Radiância. | dmg: 14, tgt: 'one', special: 'divineLance' |
+| 60 | Benção | skill | luz_common | 1 | Cura 5 HP. Compra 1. | healSelf: 5, draw: 1 |
+| 61 | Aura Protetora | power | luz_uncommon | 2 | Fim do turno: +4 bloqueio, +1 HP. | special: 'auraProtect' |
+| 62 | Smite | attack | luz_uncommon | 2 | Causa 10 dano a TODOS. 1 Fraqueza a todos. | dmg: 10, weak: 1, tgt: 'all' |
+| 63 | Resurreição | power | luz_rare | 3 | Ao morrer: revive com 25% HP (1x por combate). | special: 'resurrect' |
+| 64 | Nova Solar | attack | luz_rare | 4 | Causa 40 de dano. Cura metade. Exaure. | dmg: 40, tgt: 'one', exhaust: true, special: 'novaSolar' |
+
+### Cartas do Druida
+
+| ID | Nome | Tipo | Raridade | Custo | Descrição | Campos |
+|----|------|------|----------|-------|-----------|--------|
+| 65 | Espinhos Vivos | skill | starter_druida | 1 | Ganha 5 de bloqueio. +2 Espinhos. | blk: 5, special: 'livingThorns' |
+| 66 | Garras da Fera | attack | starter_druida | 1 | Causa 7 de dano. | dmg: 7, tgt: 'one' |
+| 67 | Regenerar | skill | starter_druida | 0 | Ganha 3 Regeneração (cura 3 HP/turno, 3 turnos). | special: 'regen' |
+| 68 | Cipó Aprisionante | skill | druida_common | 1 | Aplica 2 Fraqueza. Ganha 4 de bloqueio. | blk: 4, weak: 2, tgt: 'one' |
+| 69 | Investida Selvagem | attack | druida_common | 1 | Causa 5 de dano 2 vezes. | dmg: 5, hits: 2, tgt: 'one' |
+| 70 | Fotossíntese | skill | druida_common | 1 | Ganha 2 Energia. Compra 1. | gainEnergy: 2, draw: 1 |
+| 71 | Muralha de Raízes | power | druida_uncommon | 2 | Início do turno: +3 Espinhos. | special: 'rootWall' |
+| 72 | Enxame de Abelhas | attack | druida_uncommon | 2 | Causa 3 de dano 5 vezes. | dmg: 3, hits: 5, tgt: 'one' |
+| 73 | Forma Animal | power | druida_rare | 3 | +2 Força. +2 Destreza. | gainStr: 2, special: 'animalForm' |
+| 74 | Terremoto | attack | druida_rare | 4 | Causa 25 dano a TODOS. 2 Vulnerável. Exaure. | dmg: 25, vuln: 2, tgt: 'all', exhaust: true |
+
 ### Sistema de Upgrade
 
 Ao melhorar uma carta na Fogueira, `upgraded = true`. Efeitos:
@@ -187,6 +221,9 @@ Ao melhorar uma carta na Fogueira, `upgraded = true`. Efeitos:
 | Biblioteca Antiga | Estantes empoeiradas... | Estudar / ganhar carta (`gainCard`); Descansar / curar 20% (`heal20`) |
 | Poço Místico | Águas luminescentes... | Beber (`mysticPool`); Ignorar (`leave`) |
 | Altar Negro | Figuras encapuzadas... | Sacrificar (`darkAltar`); Ganhar 80 ouro (`gold80`) |
+| Espírito da Floresta | Uma luz esverdeada emana entre as árvores... | Aceitar pacto (`forestSpirit` — desbloqueia Druida); Recusar (`leave`) |
+
+> O evento "Espírito da Floresta" aparece com 15% de chance após completar o Ato 1 pela primeira vez, enquanto o Druida ainda não estiver desbloqueado.
 
 ---
 
@@ -235,13 +272,16 @@ Ao melhorar uma carta na Fogueira, `upgraded = true`. Efeitos:
 | `unlockChar` | Novo Aliado | Desbloqueie um personagem. |
 | `altarUpgrade5` | Devoto | Compre 5 upgrades no Altar. |
 
-### Ouro (5)
+### Ouro (8)
 
 | ID | Nome | Descrição |
 |----|------|-----------|
-| `victoryPacto` | Pacto Selado | Vença a run com Pacto. |
-| `victorySombra` | Sombra Eterna | Vença a run com Sombra. |
-| `victoryCinza` | Cinzas ao Vento | Vença a run com Cinza. |
+| `victoryPacto` | Vitória do Guerreiro | Vença a run com Guerreiro. |
+| `victorySombra` | Vitória do Assassino | Vença a run com Assassino. |
+| `victoryCinza` | Vitória do Mago Sombrio | Vença a run com Mago Sombrio. |
+| `victoryAll3` | Triunfo Absoluto | Vença com os 3 personagens originais. (Desbloqueia Mago da Luz) |
+| `victoryLuz` | Aurora Eterna | Vença a run com Mago da Luz. |
+| `victoryDruida` | Guardião da Floresta | Vença a run com Druida. |
 | `thousandKills` | Lenda Sombria | Derrote 1000 inimigos no total. |
 | `allRelics` | Relicário Completo | Colete todas as 10 relíquias. |
 
@@ -271,6 +311,11 @@ Ao melhorar uma carta na Fogueira, `upgraded = true`. Efeitos:
 | MANTO | Manto das Sombras | Ganha Furtividade no início de cada turno. |
 | VEN.L | Veneno Letal | Veneno dos inimigos aumenta por turno. |
 | TRANS | Transcendência | Compra cartas extras no início do turno. |
+| RAD | Radiância | Bônus de dano sagrado (Lança Divina +4/stack). Diminui 1 por turno. |
+| REGEN | Regeneração | Cura HP no início do turno. Stack diminui 1 por turno. |
+| AURA | Aura Protetora | Ganha bloqueio e HP no fim do turno. |
+| RAÍZES | Muralha de Raízes | Ganha Espinhos no início de cada turno. |
+| RESSUR | Resurreição | Ao morrer: revive com 25% HP (1x por combate). |
 
 ### Debuffs do Jogador
 
@@ -321,5 +366,6 @@ Ao melhorar uma carta na Fogueira, `upgraded = true`. Efeitos:
 - **Mapa procedural** com múltiplos caminhos
 - **Combate por turnos** com sistema de energia/cartas
 - **Progressão roguelite**: Almas Sombrias como moeda permanente
+- **5 Personagens** jogáveis com mecânicas únicas
 - **Meta-progressão**: Altar das Almas (upgrades) + desbloqueio de personagens
-- **Troféus**: 24 conquistas + Platina
+- **Troféus**: 27 conquistas + Platina

@@ -1650,6 +1650,28 @@ const CARDS = [
   { n: 'Pacto de Sangue', t: 'skill', r: 'cinza_uncommon', c: 0, d: 'Perde 8 HP.\nGanha 3 Energia.', selfDmg: 8, gainEnergy: 3 },
   { n: 'Nova Arcana', t: 'attack', r: 'cinza_rare', c: 4, d: 'Causa 50 de dano.\nExaure.', dmg: 50, tgt: 'one', exhaust: true },
   { n: 'Transcendência', t: 'power', r: 'cinza_rare', c: 3, d: 'Início turno:\nCompra 2 extras.', special: 'transcend' },
+  // --- MAGO DA LUZ cards ---
+  { n: 'Raio de Luz', t: 'attack', r: 'starter_luz', c: 1, d: 'Causa 6 de dano.\nCura 2 HP.', dmg: 6, healSelf: 2, tgt: 'one' },
+  { n: 'Escudo Sagrado', t: 'skill', r: 'starter_luz', c: 1, d: 'Ganha 8 de bloqueio.', blk: 8 },
+  { n: 'Oração', t: 'skill', r: 'starter_luz', c: 0, d: '+1 Radiância.\nCompra 1.', draw: 1, special: 'radiance' },
+  { n: 'Purificar', t: 'skill', r: 'luz_common', c: 1, d: 'Remove 1 debuff.\nGanha 6 de bloqueio.', blk: 6, special: 'purify' },
+  { n: 'Lança Divina', t: 'attack', r: 'luz_common', c: 2, d: 'Causa 14 de dano.\n+4 por Radiância.', dmg: 14, tgt: 'one', special: 'divineLance' },
+  { n: 'Benção', t: 'skill', r: 'luz_common', c: 1, d: 'Cura 5 HP.\nCompra 1.', healSelf: 5, draw: 1 },
+  { n: 'Aura Protetora', t: 'power', r: 'luz_uncommon', c: 2, d: 'Fim do turno:\n+4 bloqueio, +1 HP.', special: 'auraProtect' },
+  { n: 'Smite', t: 'attack', r: 'luz_uncommon', c: 2, d: 'Causa 10 dano a TODOS.\n1 Fraqueza a todos.', dmg: 10, weak: 1, tgt: 'all' },
+  { n: 'Resurreição', t: 'power', r: 'luz_rare', c: 3, d: 'Ao morrer: revive\ncom 25% HP (1x).', special: 'resurrect' },
+  { n: 'Nova Solar', t: 'attack', r: 'luz_rare', c: 4, d: 'Causa 40 de dano.\nCura metade. Exaure.', dmg: 40, tgt: 'one', exhaust: true, special: 'novaSolar' },
+  // --- DRUIDA cards ---
+  { n: 'Espinhos Vivos', t: 'skill', r: 'starter_druida', c: 1, d: 'Ganha 5 de bloqueio.\n+2 Espinhos.', blk: 5, special: 'livingThorns' },
+  { n: 'Garras da Fera', t: 'attack', r: 'starter_druida', c: 1, d: 'Causa 7 de dano.', dmg: 7, tgt: 'one' },
+  { n: 'Regenerar', t: 'skill', r: 'starter_druida', c: 0, d: 'Ganha 3 Regeneração.\n(cura 3 HP/turno, 3 turnos)', special: 'regen' },
+  { n: 'Cipó Aprisionante', t: 'skill', r: 'druida_common', c: 1, d: 'Aplica 2 Fraqueza.\nGanha 4 de bloqueio.', blk: 4, weak: 2, tgt: 'one' },
+  { n: 'Investida Selvagem', t: 'attack', r: 'druida_common', c: 1, d: 'Causa 5 de dano 2 vezes.', dmg: 5, hits: 2, tgt: 'one' },
+  { n: 'Fotossíntese', t: 'skill', r: 'druida_common', c: 1, d: 'Ganha 2 Energia.\nCompra 1.', gainEnergy: 2, draw: 1 },
+  { n: 'Muralha de Raízes', t: 'power', r: 'druida_uncommon', c: 2, d: 'Início do turno:\n+3 Espinhos.', special: 'rootWall' },
+  { n: 'Enxame de Abelhas', t: 'attack', r: 'druida_uncommon', c: 2, d: 'Causa 3 de dano 5 vezes.', dmg: 3, hits: 5, tgt: 'one' },
+  { n: 'Forma Animal', t: 'power', r: 'druida_rare', c: 3, d: '+2 Força.\n+2 Destreza.', gainStr: 2, special: 'animalForm' },
+  { n: 'Terremoto', t: 'attack', r: 'druida_rare', c: 4, d: 'Causa 25 dano a TODOS.\n2 Vulnerável. Exaure.', dmg: 25, vuln: 2, tgt: 'all', exhaust: true },
 ];
 
 const makeCard = (id, upgraded) => ({ id, uid: cardUidCounter++, upgraded: upgraded || false });
@@ -1700,6 +1722,16 @@ const makeStarterDeck = (character) => {
     for (let i = 0; i < 4; i++) deck.push(makeCard(47));
     deck.push(makeCard(48));
     deck.push(makeCard(48));
+  } else if (character === 'luz') {
+    for (let i = 0; i < 4; i++) deck.push(makeCard(56));
+    for (let i = 0; i < 4; i++) deck.push(makeCard(55));
+    deck.push(makeCard(57));
+    deck.push(makeCard(57));
+  } else if (character === 'druida') {
+    for (let i = 0; i < 4; i++) deck.push(makeCard(65));
+    for (let i = 0; i < 4; i++) deck.push(makeCard(66));
+    deck.push(makeCard(67));
+    deck.push(makeCard(67));
   } else {
     for (let i = 0; i < 5; i++) deck.push(makeCard(0));
     for (let i = 0; i < 4; i++) deck.push(makeCard(1));
@@ -1713,12 +1745,15 @@ const getCardPool = (character) => {
   const pool = [];
   for (let i = 0; i < CARDS.length; i++) {
     const r = CARDS[i].r;
-    if (r === 'starter' || r === 'starter_sombra' || r === 'starter_cinza' || r === 'status') continue;
+    if (r.startsWith('starter') || r === 'status') continue;
     const isSombra = r.includes('sombra');
     const isCinza = r.includes('cinza');
+    const isLuz = r.includes('luz');
+    const isDruida = r.includes('druida');
     if (isSombra && ch !== 'sombra') continue;
     if (isCinza && ch !== 'cinza') continue;
-    if (!isSombra && !isCinza) { pool.push(i); continue; }
+    if (isLuz && ch !== 'luz') continue;
+    if (isDruida && ch !== 'druida') continue;
     pool.push(i);
   }
   return pool;
@@ -1895,6 +1930,15 @@ const EVENTS = [
       { text: 'Receber 80 de ouro', action: 'gold80' },
     ],
   },
+  {
+    n: 'Espírito da Floresta',
+    d: 'Uma luz esverdeada emana entre as árvores. Um espírito ancestral materializa-se, oferecendo um pacto com a natureza...',
+    choices: [
+      { text: 'Aceitar o pacto da natureza (desbloquear Druida)', action: 'forestSpirit' },
+      { text: 'Recusar respeitosamente', action: 'leave' },
+    ],
+    special: 'druidUnlock',
+  },
 ];
 
 // ==================== GAME STATE ====================
@@ -1937,6 +1981,8 @@ const combat = {
   playerPoison: 0,
   playerThorns: 0,
   playerStealth: 0,
+  playerRadiance: 0,
+  playerRegen: 0,
   selectedCardIdx: -1,
   targeting: false,
   hoveredCardIdx: -1,
@@ -1945,7 +1991,7 @@ const combat = {
   animTimer: 0,
   enemyTurnIdx: -1,
   playerTurn: true,
-  powers: { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0 },
+  powers: { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0, auraProtect: 0, rootWall: 0, resurrect: false },
   penNibCount: 0,
   rampageBonuses: {},
   turnPhase: 'player',
@@ -1998,7 +2044,7 @@ const defaultMeta = () => ({
   trophies: [],
   totalPotionsUsed: 0, totalCardsForged: 0, totalShopBuys: 0,
   totalAltarBuys: 0, maxSingleHit: 0, totalElitesKilled: 0,
-  allRelicsEver: [], victories: { pacto: 0, sombra: 0, cinza: 0 },
+  allRelicsEver: [], victories: { pacto: 0, sombra: 0, cinza: 0, luz: 0, druida: 0 },
   enemiesSeen: [],
   tutorialDone: false,
   actsCleared: 0,
@@ -2038,9 +2084,12 @@ const TROPHIES = [
   { id: 'bigDamage', tier: 'silver', n: 'Golpe Devastador', d: 'Cause 50+ dano em um único ataque.' },
   { id: 'unlockChar', tier: 'silver', n: 'Novo Aliado', d: 'Desbloqueie um personagem.' },
   { id: 'altarUpgrade5', tier: 'silver', n: 'Devoto', d: 'Compre 5 upgrades no Altar.' },
-  { id: 'victoryPacto', tier: 'gold', n: 'Pacto Selado', d: 'Vença a run com Pacto.' },
-  { id: 'victorySombra', tier: 'gold', n: 'Sombra Eterna', d: 'Vença a run com Sombra.' },
-  { id: 'victoryCinza', tier: 'gold', n: 'Cinzas ao Vento', d: 'Vença a run com Cinza.' },
+  { id: 'victoryPacto', tier: 'gold', n: 'Vitória do Guerreiro', d: 'Vença a run com Guerreiro.' },
+  { id: 'victorySombra', tier: 'gold', n: 'Vitória do Assassino', d: 'Vença a run com Assassino.' },
+  { id: 'victoryCinza', tier: 'gold', n: 'Vitória do Mago Sombrio', d: 'Vença a run com Mago Sombrio.' },
+  { id: 'victoryAll3', tier: 'gold', n: 'Triunfo Absoluto', d: 'Vença com os 3 personagens originais.' },
+  { id: 'victoryLuz', tier: 'gold', n: 'Aurora Eterna', d: 'Vença a run com Mago da Luz.' },
+  { id: 'victoryDruida', tier: 'gold', n: 'Guardião da Floresta', d: 'Vença a run com Druida.' },
   { id: 'thousandKills', tier: 'gold', n: 'Lenda Sombria', d: 'Derrote 1000 inimigos no total.' },
   { id: 'allRelics', tier: 'gold', n: 'Relicário Completo', d: 'Colete todas as 10 relíquias.' },
   { id: 'platinum', tier: 'platinum', n: 'Pacto Sombrio: Platina', d: 'Desbloqueie todos os troféus.' },
@@ -2080,6 +2129,15 @@ const checkTrophies = () => {
   if (!has('victoryPacto') && (v.pacto || 0) >= 1) awardTrophy('victoryPacto');
   if (!has('victorySombra') && (v.sombra || 0) >= 1) awardTrophy('victorySombra');
   if (!has('victoryCinza') && (v.cinza || 0) >= 1) awardTrophy('victoryCinza');
+  if (!has('victoryLuz') && (v.luz || 0) >= 1) awardTrophy('victoryLuz');
+  if (!has('victoryDruida') && (v.druida || 0) >= 1) awardTrophy('victoryDruida');
+  if (!has('victoryAll3') && (v.pacto || 0) >= 1 && (v.sombra || 0) >= 1 && (v.cinza || 0) >= 1) {
+    awardTrophy('victoryAll3');
+    if (!meta.unlockedChars.includes('luz')) {
+      meta.unlockedChars.push('luz');
+      saveMeta();
+    }
+  }
 
   if (game.state !== 'menu') {
     if (!has('cardCollector') && game.deck && game.deck.length >= 15) awardTrophy('cardCollector');
@@ -4339,7 +4397,9 @@ const startCombat = (encounterType) => {
   combat.enemyTurnIdx = -1;
   combat.playerTurn = true;
   combat.turnPhase = 'player';
-  combat.powers = { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0 };
+  combat.powers = { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0, auraProtect: 0, rootWall: 0, resurrect: false };
+  combat.playerRadiance = 0;
+  combat.playerRegen = 0;
   combat.penNibCount = 0;
   combat.rampageBonuses = {};
 
@@ -4409,7 +4469,9 @@ const startTutorialCombat = () => {
   combat.enemyTurnIdx = -1;
   combat.playerTurn = true;
   combat.turnPhase = 'player';
-  combat.powers = { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0 };
+  combat.powers = { metallicize: 0, demonForm: 0, barricade: false, feelNoPain: 0, brutality: 0, auraProtect: 0, rootWall: 0, resurrect: false };
+  combat.playerRadiance = 0;
+  combat.playerRegen = 0;
   combat.penNibCount = 0;
   combat.rampageBonuses = {};
 
@@ -4627,6 +4689,20 @@ const startPlayerTurn = () => {
       }
     }
   }
+  if (combat.powers.rootWall > 0) {
+    combat.playerThorns += combat.powers.rootWall;
+    addFloatingText(150, 460, `+${combat.powers.rootWall} Espinhos`, '#228833');
+    sfxBuff();
+  }
+  if (combat.playerRegen > 0) {
+    game.hp = Math.min(game.maxHp, game.hp + combat.playerRegen);
+    addFloatingText(150, 400, `+${combat.playerRegen} HP (Regen)`, '#228833', 16);
+    sfxHeal();
+    combat.playerRegen--;
+  }
+  if (combat.playerRadiance > 0) {
+    combat.playerRadiance--;
+  }
 
   if (game.relics.includes('lantern') && combat.turn === 1) {
     combat.energy += 1;
@@ -4769,7 +4845,15 @@ const dealDamageToPlayer = (amount) => {
     spawnParticles(150, 460, '#3498db', 6, 25);
   }
   if (game.hp <= 0) {
-    game.hp = 0;
+    if (combat.powers.resurrect) {
+      combat.powers.resurrect = false;
+      game.hp = Math.max(1, Math.floor(game.maxHp * 0.25));
+      addFloatingText(150, 350, 'RESURREIÇÃO!', '#ddaa22', 24);
+      sfxHeal();
+      spawnParticles(150, 400, '#ddaa22', 12, 40);
+    } else {
+      game.hp = 0;
+    }
   }
 };
 
@@ -4892,6 +4976,8 @@ const playCard = (cardIdx, targetEnemyIdx) => {
         dealDamageToEnemy(e, finalDmg);
       }
     }
+  } else if (data.special === 'divineLance' || data.special === 'novaSolar') {
+    // handled in special section below
   } else if (data.dmg && data.tgt === 'all') {
     const alive = combat.enemies.filter(e => !e.dead);
     const hits = data.hits || 1;
@@ -5049,6 +5135,70 @@ const playCard = (cardIdx, targetEnemyIdx) => {
     addFloatingText(150, 400, 'Transcendência!', '#3366cc', 16);
     sfxBuff();
   }
+  if (data.special === 'radiance') {
+    combat.playerRadiance += 1;
+    addFloatingText(150, 400, '+1 Radiância', '#ddaa22', 16);
+    sfxBuff();
+  }
+  if (data.special === 'divineLance' && targetEnemyIdx >= 0) {
+    const e = combat.enemies[targetEnemyIdx];
+    if (e && !e.dead) {
+      const bonus = combat.playerRadiance * 4;
+      const vuln = e.vulnerable > 0;
+      const weak = combat.playerWeak > 0;
+      const finalDmg = calcDamage(data.dmg + bonus, combat.playerStrength, weak, vuln, penNibActive, hasDemonSkull);
+      dealDamageToEnemy(e, finalDmg);
+    }
+  }
+  if (data.special === 'purify') {
+    if (combat.playerWeak > 0) { combat.playerWeak = Math.max(0, combat.playerWeak - 1); addFloatingText(150, 400, '-1 Fraqueza', '#33cc33', 16); }
+    else if (combat.playerVulnerable > 0) { combat.playerVulnerable = Math.max(0, combat.playerVulnerable - 1); addFloatingText(150, 400, '-1 Vulnerável', '#33cc33', 16); }
+  }
+  if (data.special === 'novaSolar' && targetEnemyIdx >= 0) {
+    const e = combat.enemies[targetEnemyIdx];
+    if (e && !e.dead) {
+      const vuln = e.vulnerable > 0;
+      const weak = combat.playerWeak > 0;
+      const finalDmg = calcDamage(data.dmg, combat.playerStrength, weak, vuln, penNibActive, hasDemonSkull);
+      const dealt = dealDamageToEnemy(e, finalDmg);
+      const heal = Math.floor(dealt / 2);
+      if (heal > 0) {
+        game.hp = Math.min(game.maxHp, game.hp + heal);
+        addFloatingText(150, 400, `+${heal} HP`, '#33cc33', 18);
+        sfxHeal();
+      }
+    }
+  }
+  if (data.special === 'auraProtect') {
+    combat.powers.auraProtect += 1;
+    addFloatingText(150, 400, 'Aura Protetora!', '#ddaa22', 16);
+    sfxBuff();
+  }
+  if (data.special === 'resurrect') {
+    combat.powers.resurrect = true;
+    addFloatingText(150, 400, 'Resurreição!', '#ddaa22', 16);
+    sfxBuff();
+  }
+  if (data.special === 'livingThorns') {
+    combat.playerThorns += 2;
+    addFloatingText(150, 400, '+2 Espinhos', '#228833', 16);
+    sfxBuff();
+  }
+  if (data.special === 'regen') {
+    combat.playerRegen += 3;
+    addFloatingText(150, 400, '+3 Regeneração', '#228833', 16);
+    sfxBuff();
+  }
+  if (data.special === 'rootWall') {
+    combat.powers.rootWall += 3;
+    addFloatingText(150, 400, 'Muralha de Raízes!', '#228833', 16);
+    sfxBuff();
+  }
+  if (data.special === 'animalForm') {
+    combat.playerDexterity += 2;
+    addFloatingText(150, 400, '+2 Força, +2 Destreza', '#228833', 16);
+    sfxBuff();
+  }
 
   if (data.exhaust || data.special === 'fiendFire') {
     combat.exhaustPile.push(card);
@@ -5089,6 +5239,12 @@ const endPlayerTurn = () => {
 
   if (combat.powers.metallicize > 0) {
     gainBlock(combat.powers.metallicize);
+  }
+  if (combat.powers.auraProtect > 0) {
+    const aBlk = combat.powers.auraProtect * 4;
+    gainBlock(aBlk);
+    game.hp = Math.min(game.maxHp, game.hp + combat.powers.auraProtect);
+    addFloatingText(150, 400, `+${aBlk} Bloqueio, +${combat.powers.auraProtect} HP`, '#ddaa22', 14);
   }
 
   combat.playerTurn = false;
@@ -5633,6 +5789,11 @@ const renderCombat = () => {
     if (combat.powers.demonForm > 0) statuses.push({ t: `DEM +${combat.powers.demonForm}`, c: PAL.strength, tip: `Forma Demoníaca: +${combat.powers.demonForm} Força por turno` });
     if (combat.powers.shadowCloak > 0) statuses.push({ t: `MANTO +${combat.powers.shadowCloak}`, c: '#9933cc', tip: `Manto: +${combat.powers.shadowCloak} Furtividade por turno` });
     if (combat.powers.lethalPoison > 0) statuses.push({ t: `VEN.L +${combat.powers.lethalPoison}`, c: '#33cc33', tip: `Veneno Letal: veneno inimigo +${combat.powers.lethalPoison} por turno` });
+    if (combat.playerRadiance > 0) statuses.push({ t: `RAD ${combat.playerRadiance}`, c: '#ddaa22', tip: `Radiância: bônus de dano sagrado (${combat.playerRadiance} stacks)` });
+    if (combat.playerRegen > 0) statuses.push({ t: `REGEN ${combat.playerRegen}`, c: '#228833', tip: `Regeneração: cura ${combat.playerRegen} HP no início do turno` });
+    if (combat.powers.auraProtect > 0) statuses.push({ t: `AURA +${combat.powers.auraProtect}`, c: '#ddaa22', tip: `Aura Protetora: +${combat.powers.auraProtect * 4} bloqueio e +${combat.powers.auraProtect} HP no fim do turno` });
+    if (combat.powers.rootWall > 0) statuses.push({ t: `RAÍZES +${combat.powers.rootWall}`, c: '#228833', tip: `Muralha de Raízes: +${combat.powers.rootWall} Espinhos por turno` });
+    if (combat.powers.resurrect) statuses.push({ t: 'RESSUR', c: '#ddaa22', tip: 'Resurreição: revive com 25% HP ao morrer (1x)' });
     if (combat.powers.transcend > 0) statuses.push({ t: `TRANS +${combat.powers.transcend}`, c: '#3366cc', tip: `Transcendência: compra +${combat.powers.transcend} cartas extras por turno` });
 
     let sx = 14;
@@ -7029,6 +7190,17 @@ const processEventChoice = (choiceAction) => {
         }
       }
       break;
+    case 'forestSpirit':
+      if (!meta.unlockedChars.includes('druida')) {
+        meta.unlockedChars.push('druida');
+        saveMeta();
+        checkTrophies();
+        eventData.resultText = 'O espírito da floresta concede seu poder! DRUIDA desbloqueado!';
+      } else {
+        game.hp = Math.min(game.maxHp, game.hp + 20);
+        eventData.resultText = 'A natureza o abençoa. Curou 20 HP!';
+      }
+      break;
     case 'leave':
     default:
       eventData.resultText = 'Seguiu em frente.';
@@ -7221,15 +7393,17 @@ const renderCharSelect = () => {
   drawPersonaTitle('ESCOLHA SEU PERSONAGEM', 100, W - 200, 30, 48);
 
   const chars = [
-    { id: 'pacto', n: 'PACTO', sub: 'Guerreiro Equilibrado', desc: 'Força + Bloqueio\nHP: 80 | Ouro: 99', color: '#7733aa', unlocked: true, cost: 0 },
-    { id: 'sombra', n: 'SOMBRA', sub: 'Assassino Venenoso', desc: 'Veneno + Furtividade\nHP: 70 | Ouro: 99', color: '#9933cc', unlocked: meta.unlockedChars.includes('sombra'), cost: 150 },
-    { id: 'cinza', n: 'CINZA', sub: 'Mago Sombrio', desc: 'Poderes + Canalização\nHP: 65 | Ouro: 80', color: '#3366cc', unlocked: meta.unlockedChars.includes('cinza'), cost: 300 },
+    { id: 'pacto', n: 'GUERREIRO', sub: 'Espada e Escudo', desc: 'Força + Bloqueio\nHP: 80 | Ouro: 99', color: '#7733aa', unlocked: true, cost: 0 },
+    { id: 'sombra', n: 'ASSASSINO', sub: 'Veneno e Furtividade', desc: 'Veneno + Furtividade\nHP: 70 | Ouro: 99', color: '#9933cc', unlocked: meta.unlockedChars.includes('sombra'), cost: 150 },
+    { id: 'cinza', n: 'MAGO SOMBRIO', sub: 'Poderes Arcanos', desc: 'Poderes + Canalização\nHP: 65 | Ouro: 80', color: '#3366cc', unlocked: meta.unlockedChars.includes('cinza'), cost: 300 },
+    { id: 'luz', n: 'MAGO DA LUZ', sub: 'Radiância Sagrada', desc: 'Cura + Radiância\nHP: 60 | Ouro: 90', color: '#ddaa22', unlocked: meta.unlockedChars.includes('luz'), cost: 0 },
+    { id: 'druida', n: 'DRUIDA', sub: 'Natureza Selvagem', desc: 'Espinhos + Regeneração\nHP: 75 | Ouro: 85', color: '#228833', unlocked: meta.unlockedChars.includes('druida'), cost: 0 },
   ];
 
-  const cardW = 260, cardH = 380, gap = 40;
+  const cardW = 190, cardH = 360, gap = 20;
   const totalW = chars.length * cardW + (chars.length - 1) * gap;
   const startX = W / 2 - totalW / 2;
-  const cardY = 130;
+  const cardY = 140;
   const skew = -0.07;
 
   for (let i = 0; i < chars.length; i++) {
@@ -7274,7 +7448,7 @@ const renderCharSelect = () => {
     ctx.fillStyle = hGrd;
     ctx.fillRect(cx + 2, cardY + 2, cardW - 4, hdrH);
 
-    ctx.font = 'bold italic 28px sans-serif';
+    ctx.font = 'bold italic 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#e8dcc8';
@@ -7283,37 +7457,38 @@ const renderCharSelect = () => {
     ctx.fillText(ch.n, cx + cardW / 2, cardY + hdrH / 2);
     ctx.shadowBlur = 0;
 
-    ctx.font = 'italic 13px sans-serif';
+    ctx.font = 'italic 11px sans-serif';
     ctx.fillStyle = ch.color;
-    ctx.fillText(ch.sub, cx + cardW / 2, cardY + hdrH + 25);
+    ctx.fillText(ch.sub, cx + cardW / 2, cardY + hdrH + 20);
 
-    const silY = cardY + hdrH + 50;
+    const silY = cardY + hdrH + 40;
     ctx.save();
     ctx.globalAlpha = ch.unlocked ? 0.2 : 0.08;
     ctx.fillStyle = ch.color;
     ctx.beginPath();
-    ctx.ellipse(cx + cardW / 2, silY + 20, 25, 30, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + cardW / 2, silY + 15, 20, 25, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillRect(cx + cardW / 2 - 15, silY + 45, 30, 60);
-    ctx.fillRect(cx + cardW / 2 - 10, silY + 105, 8, 45);
-    ctx.fillRect(cx + cardW / 2 + 2, silY + 105, 8, 45);
+    ctx.fillRect(cx + cardW / 2 - 12, silY + 38, 24, 50);
+    ctx.fillRect(cx + cardW / 2 - 8, silY + 88, 7, 35);
+    ctx.fillRect(cx + cardW / 2 + 1, silY + 88, 7, 35);
     ctx.restore();
 
     if (!ch.unlocked) {
-      ctx.font = 'bold 40px sans-serif';
+      ctx.font = 'bold 32px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#4a4050';
-      ctx.fillText('\u{1F512}', cx + cardW / 2, silY + 70);
+      ctx.fillText('\u{1F512}', cx + cardW / 2, silY + 55);
 
-      ctx.font = 'bold italic 16px sans-serif';
-      ctx.fillStyle = meta.souls >= ch.cost ? '#aa66ff' : '#554444';
-      ctx.fillText(`${ch.cost} ALMAS`, cx + cardW / 2, silY + 110);
+      ctx.font = 'bold italic 12px sans-serif';
+      ctx.fillStyle = ch.cost > 0 ? (meta.souls >= ch.cost ? '#aa66ff' : '#554444') : '#aa66ff';
+      const unlockText = ch.cost > 0 ? `${ch.cost} ALMAS` : 'CONQUISTA';
+      ctx.fillText(unlockText, cx + cardW / 2, silY + 90);
     } else {
-      ctx.font = '13px sans-serif';
+      ctx.font = '11px sans-serif';
       ctx.fillStyle = '#887788';
       const lines = ch.desc.split('\n');
       for (let li = 0; li < lines.length; li++) {
-        ctx.fillText(lines[li], cx + cardW / 2, silY + 90 + li * 18);
+        ctx.fillText(lines[li], cx + cardW / 2, silY + 75 + li * 16);
       }
     }
 
@@ -8047,8 +8222,8 @@ const startNewRun = (character) => {
   game.act = 1;
   game.floor = -1;
   game.nodeIdx = -1;
-  game.maxHp = ch === 'sombra' ? 70 : ch === 'cinza' ? 65 : 80;
-  game.gold = ch === 'sombra' ? 99 : ch === 'cinza' ? 80 : 99;
+  game.maxHp = ch === 'sombra' ? 70 : ch === 'cinza' ? 65 : ch === 'luz' ? 60 : ch === 'druida' ? 75 : 80;
+  game.gold = ch === 'sombra' ? 99 : ch === 'cinza' ? 80 : ch === 'luz' ? 90 : ch === 'druida' ? 85 : 99;
 
   const upLv = (id) => meta.upgrades[id] || 0;
   game.maxHp += upLv('hp1') * 5;
@@ -8094,7 +8269,10 @@ const enterNode = (floor, nodeIdx) => {
       break;
     case 'event':
       fadeToState('event', () => {
-        eventData.current = EVENTS[randInt(0, EVENTS.length - 1)];
+        const druidEvent = EVENTS.find(e => e.special === 'druidUnlock');
+        const canDruid = druidEvent && (meta.actsCleared || 0) >= 1 && !meta.unlockedChars.includes('druida') && Math.random() < 0.15;
+        const normalEvents = EVENTS.filter(e => !e.special);
+        eventData.current = canDruid ? druidEvent : normalEvents[randInt(0, normalEvents.length - 1)];
         eventData.done = false;
         eventData.resultText = '';
         eventData.pickingCard = false;
@@ -8501,7 +8679,10 @@ const handleInput = () => {
                       case 'boss': fadeToState('combat', () => startCombat('boss')); break;
                       case 'event':
                         fadeToState('event', () => {
-                          eventData.current = EVENTS[randInt(0, EVENTS.length - 1)];
+                          const druidEv = EVENTS.find(e => e.special === 'druidUnlock');
+                          const canDr = druidEv && (meta.actsCleared || 0) >= 1 && !meta.unlockedChars.includes('druida') && Math.random() < 0.15;
+                          const normEv = EVENTS.filter(e => !e.special);
+                          eventData.current = canDr ? druidEv : normEv[randInt(0, normEv.length - 1)];
                           eventData.done = false; eventData.resultText = '';
                           eventData.pickingCard = false; eventData.pickingRemove = false;
                           eventData.cardChoices = []; eventData.removeChoices = [];
@@ -8885,6 +9066,7 @@ const handleInput = () => {
     }
 
     case 'rest': {
+      if (game.fadeDir !== 0) break;
       if (!restData.choosing) {
         const healAmt = Math.floor(game.maxHp * 0.3);
         const restBtnX = W / 2 - 200, restBtnY = 260, restBtnW = 400, restBtnH = 50;
@@ -8953,7 +9135,7 @@ const handleInput = () => {
       meta.totalRuns++;
       if (game.floor + 1 > meta.bestFloor) meta.bestFloor = game.floor + 1;
       const ch = game.character || 'pacto';
-      if (!meta.victories) meta.victories = { pacto: 0, sombra: 0, cinza: 0 };
+      if (!meta.victories) meta.victories = { pacto: 0, sombra: 0, cinza: 0, luz: 0, druida: 0 };
       meta.victories[ch] = (meta.victories[ch] || 0) + 1;
       saveMeta();
       checkTrophies();
@@ -8964,12 +9146,12 @@ const handleInput = () => {
     }
 
     case 'charSelect': {
-      const csChars = ['pacto', 'sombra', 'cinza'];
-      const charCosts = [0, 150, 300];
-      const cardW = 260, cardH = 380, csGap = 40;
+      const csChars = ['pacto', 'sombra', 'cinza', 'luz', 'druida'];
+      const charCosts = [0, 150, 300, 0, 0];
+      const cardW = 190, cardH = 360, csGap = 20;
       const totalW = csChars.length * cardW + (csChars.length - 1) * csGap;
       const startX = W / 2 - totalW / 2;
-      const cardY = 130;
+      const cardY = 140;
 
       for (let i = 0; i < csChars.length; i++) {
         const cx = startX + i * (cardW + csGap);
@@ -8985,7 +9167,7 @@ const handleInput = () => {
             } else {
               fadeToState('map');
             }
-          } else if (meta.souls >= charCosts[i]) {
+          } else if (charCosts[i] > 0 && meta.souls >= charCosts[i]) {
             meta.souls -= charCosts[i];
             meta.unlockedChars.push(csChars[i]);
             saveMeta();
@@ -9064,8 +9246,8 @@ const handleInput = () => {
         cardexZoomed = null;
         break;
       }
-      const tabs = ['all', 'neutras', 'pacto', 'sombra', 'cinza'];
-      const tabStartX = 70, tabY = 75, tabW = 90, tabH = 30, tabGap = 8;
+      const tabs = ['all', 'neutras', 'pacto', 'sombra', 'cinza', 'luz', 'druida'];
+      const tabStartX = 70, tabY = 75, tabW = 80, tabH = 30, tabGap = 6;
       for (let ti = 0; ti < tabs.length; ti++) {
         const tx = tabStartX + ti * (tabW + tabGap);
         if (isInRect(mouse.x, mouse.y, tx, tabY, tabW, tabH)) {
@@ -9089,10 +9271,14 @@ const handleInput = () => {
         let cat = 'neutras';
         if (r.includes('sombra')) cat = 'sombra';
         else if (r.includes('cinza')) cat = 'cinza';
+        else if (r.includes('luz')) cat = 'luz';
+        else if (r.includes('druida')) cat = 'druida';
         else if (r === 'starter') cat = 'pacto';
         if (cardexFilter === 'all' || cardexFilter === cat) {
           const locked = (cat === 'sombra' && (!meta.unlockedChars || !meta.unlockedChars.includes('sombra'))) ||
-                         (cat === 'cinza' && (!meta.unlockedChars || !meta.unlockedChars.includes('cinza')));
+                         (cat === 'cinza' && (!meta.unlockedChars || !meta.unlockedChars.includes('cinza'))) ||
+                         (cat === 'luz' && (!meta.unlockedChars || !meta.unlockedChars.includes('luz'))) ||
+                         (cat === 'druida' && (!meta.unlockedChars || !meta.unlockedChars.includes('druida')));
           filteredCards.push({ idx: i, locked });
         }
       }
@@ -9381,9 +9567,9 @@ const renderCardex = () => {
 
   drawPersonaTitle('BIBLIOTECA DE CARTAS', 80, W - 160, 25, 44);
 
-  const tabs = ['all', 'neutras', 'pacto', 'sombra', 'cinza'];
-  const tabLabels = ['TODAS', 'NEUTRAS', 'PACTO', 'SOMBRA', 'CINZA'];
-  const tabStartX = 70, tabY = 75, tabW = 90, tabH = 30, tabGap = 8;
+  const tabs = ['all', 'neutras', 'pacto', 'sombra', 'cinza', 'luz', 'druida'];
+  const tabLabels = ['TODAS', 'NEUTRAS', 'GUERREIRO', 'ASSASSINO', 'M.SOMBRIO', 'M.LUZ', 'DRUIDA'];
+  const tabStartX = 70, tabY = 75, tabW = 80, tabH = 30, tabGap = 6;
 
   for (let ti = 0; ti < tabs.length; ti++) {
     const tx = tabStartX + ti * (tabW + tabGap);
@@ -9420,6 +9606,8 @@ const renderCardex = () => {
     const r = card.r;
     if (r.includes('sombra')) return 'sombra';
     if (r.includes('cinza')) return 'cinza';
+    if (r.includes('luz')) return 'luz';
+    if (r.includes('druida')) return 'druida';
     if (r === 'starter') return 'pacto';
     return 'neutras';
   };
@@ -9472,7 +9660,9 @@ const renderCardex = () => {
     if (cy + ch < clipTop || cy > clipBot) continue;
 
     const locked = (cardChar === 'sombra' && (!meta.unlockedChars || !meta.unlockedChars.includes('sombra'))) ||
-                   (cardChar === 'cinza' && (!meta.unlockedChars || !meta.unlockedChars.includes('cinza')));
+                   (cardChar === 'cinza' && (!meta.unlockedChars || !meta.unlockedChars.includes('cinza'))) ||
+                   (cardChar === 'luz' && (!meta.unlockedChars || !meta.unlockedChars.includes('luz'))) ||
+                   (cardChar === 'druida' && (!meta.unlockedChars || !meta.unlockedChars.includes('druida')));
 
     if (locked) {
       ctx.save();
@@ -10070,10 +10260,12 @@ const render = (dt) => {
         'Passe o mouse sobre elas no mapa para ver o efeito.',
       ]},
       { title: 'PERSONAGENS', items: [
-        'PACTO — Equilibrado. Força + Bloqueio.',
-        'SOMBRA — Veneno + Furtividade. Dano gradual.',
-        'CINZA — Poderes + Canalização. Escalonamento.',
-        'Desbloqueie com Almas Sombrias no Altar.',
+        'GUERREIRO — Equilibrado. Força + Bloqueio.',
+        'ASSASSINO — Veneno + Furtividade. Dano gradual.',
+        'MAGO SOMBRIO — Poderes + Canalização. Escalonamento.',
+        'MAGO DA LUZ — Cura + Radiância. Vença com os 3 originais.',
+        'DRUIDA — Espinhos + Regeneração. Evento especial.',
+        'Desbloqueie com Almas Sombrias ou conquistas.',
       ]},
       { title: 'ALMAS SOMBRIAS', items: [
         'Moeda permanente ganha ao fim de cada run.',
