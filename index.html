@@ -6108,8 +6108,9 @@ const renderCombat = () => {
   renderCombatBackground();
 
   // Player sprite in battle field
-  const pBaseX = mobC ? 140 : 220;
-  const pBaseY = mobC ? 280 : 310;
+  const pBaseX = mobC ? 180 : 220;
+  const pBaseY = mobC ? 240 : 310;
+  const pSize = mobC ? 2.2 : 1.8;
   const pShake = game.playerShake ? Math.max(0, 1 - (Date.now() - game.playerShake) / 300) * 10 : 0;
   const anim = updatePlayerAnim(pBaseX, pBaseY);
 
@@ -6117,9 +6118,9 @@ const renderCombat = () => {
   if (anim.trail) {
     ctx.save();
     ctx.globalAlpha = 0.15;
-    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.3, pBaseY + (anim.y - pBaseY) * 0.3, 1.8);
+    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.3, pBaseY + (anim.y - pBaseY) * 0.3, pSize);
     ctx.globalAlpha = 0.08;
-    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.1, pBaseY + (anim.y - pBaseY) * 0.1, 1.8);
+    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.1, pBaseY + (anim.y - pBaseY) * 0.1, pSize);
     ctx.restore();
   }
 
@@ -6140,7 +6141,7 @@ const renderCombat = () => {
   ctx.translate(anim.x, anim.y);
   ctx.scale(anim.scaleX, anim.scaleY);
   ctx.translate(-anim.x, -anim.y);
-  drawPlayerSprite(game.character || 'pacto', anim.x, anim.y, 1.8, { shake: pShake });
+  drawPlayerSprite(game.character || 'pacto', anim.x, anim.y, pSize, { shake: pShake });
   ctx.restore();
 
   for (let i = 0; i < combat.enemies.length; i++) {
