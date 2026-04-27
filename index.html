@@ -429,6 +429,7 @@ let trophyScrollY = 0;
 let bestiaryScrollY = 0;
 let cardexScrollY = 0;
 let cardexFilter = 'all';
+let cardexZoomed = null;
 let mapScrollY = 0;
 
 // ==================== TUTORIAL ====================
@@ -8945,6 +8946,10 @@ const handleInput = () => {
     }
 
     case 'cardex': {
+      if (cardexZoomed !== null) {
+        cardexZoomed = null;
+        break;
+      }
       const tabs = ['all', 'neutras', 'pacto', 'sombra', 'cinza'];
       const tabStartX = 70, tabY = 75, tabW = 90, tabH = 30, tabGap = 8;
       for (let ti = 0; ti < tabs.length; ti++) {
@@ -8955,6 +8960,43 @@ const handleInput = () => {
           break;
         }
       }
+
+      const cardScale = 0.55;
+      const cw = 120 * cardScale, ch = 170 * cardScale;
+      const cardCols = 6, cardGapX = 20, cardGapY = 18;
+      const gridLeft = (W - (cardCols * cw + (cardCols - 1) * cardGapX)) / 2;
+      const gridTop = 120, clipTop = 115, clipBot = H - 60;
+      const rowH = ch + cardGapY;
+
+      let filteredCards = [];
+      for (let i = 0; i < CARDS.length; i++) {
+        const card = CARDS[i];
+        const r = card.r;
+        let cat = 'neutras';
+        if (r.includes('sombra')) cat = 'sombra';
+        else if (r.includes('cinza')) cat = 'cinza';
+        else if (r === 'starter') cat = 'pacto';
+        if (cardexFilter === 'all' || cardexFilter === cat) {
+          const locked = (cat === 'sombra' && (!meta.unlockedChars || !meta.unlockedChars.includes('sombra'))) ||
+                         (cat === 'cinza' && (!meta.unlockedChars || !meta.unlockedChars.includes('cinza')));
+          filteredCards.push({ idx: i, locked });
+        }
+      }
+
+      for (let fi = 0; fi < filteredCards.length; fi++) {
+        const { idx, locked } = filteredCards[fi];
+        if (locked) continue;
+        const col = fi % cardCols;
+        const row = Math.floor(fi / cardCols);
+        const cx = gridLeft + col * (cw + cardGapX);
+        const cy = gridTop + row * rowH - cardexScrollY;
+        if (cy + ch < clipTop || cy > clipBot) continue;
+        if (isInRect(mouse.x, mouse.y, cx, cy, cw, ch)) {
+          cardexZoomed = idx;
+          break;
+        }
+      }
+
       const backX = 40, backY = H - 50, backW = 160, backH = 36;
       if (isInRect(mouse.x, mouse.y, backX - 5, backY - 5, backW + 10, backH + 10)) {
         fadeToState('menu');
@@ -9416,6 +9458,19 @@ const renderCardex = () => {
   const backX = 40, backY = H - 50, backW = 160, backH = 36;
   const backHov = isInRect(mouse.x, mouse.y, backX - 5, backY - 5, backW + 10, backH + 10);
   drawPersonaBtn(backX, backY, backW, backH, 'VOLTAR', backHov);
+
+  if (cardexZoomed !== null) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, W, H);
+
+    const zoomScale = isTouchDevice ? 1.8 : 1.6;
+    drawCard(W / 2, H / 2 - 20, { id: cardexZoomed, uid: 0, upgraded: false }, zoomScale, false, false);
+
+    ctx.font = `bold ${isTouchDevice ? 14 : 12}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(200,180,220,0.6)';
+    ctx.fillText('Toque para fechar', W / 2, H / 2 + CARD_H * zoomScale / 2 + 30);
+  }
 
   drawVignette();
 };
