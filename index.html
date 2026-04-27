@@ -10150,12 +10150,10 @@ const getTutorialSpotlight = () => {
       const c = combat.hand[i];
       const data = getCardData(c);
       if (data.n.startsWith(namePrefix)) {
-        const s = c.targetScale || c.scale;
-        const cx = c.targetX || c.x;
-        const cy = c.targetY || c.y;
+        const s = c.scale;
         const w = CARD_W * s, h = CARD_H * s;
-        const pad = mob ? 10 : 6;
-        return { x: cx - w / 2 - pad, y: cy - h / 2 - pad, w: w + pad * 2, h: h + pad * 2, cardIdx: i, rounded: 10 };
+        const pad = mob ? 8 : 5;
+        return { x: c.x - w / 2 - pad, y: c.y - h / 2 - pad, w: w + pad * 2, h: h + pad * 2, cardIdx: i, rounded: 8 };
       }
     }
     return null;
