@@ -1740,8 +1740,18 @@ const makeStarterDeck = (character) => {
   return deck;
 };
 
-const getCardPool = (character) => {
+const getDeckPowerIds = () => {
+  if (!game.deck) return new Set();
+  const ids = new Set();
+  for (const c of game.deck) {
+    if (CARDS[c.id] && CARDS[c.id].t === 'power') ids.add(c.id);
+  }
+  return ids;
+};
+
+const getCardPool = (character, filterPowers) => {
   const ch = character || game.character || 'pacto';
+  const ownedPowers = filterPowers !== false ? getDeckPowerIds() : new Set();
   const pool = [];
   for (let i = 0; i < CARDS.length; i++) {
     const r = CARDS[i].r;
@@ -1754,6 +1764,7 @@ const getCardPool = (character) => {
     if (isCinza && ch !== 'cinza') continue;
     if (isLuz && ch !== 'luz') continue;
     if (isDruida && ch !== 'druida') continue;
+    if (CARDS[i].t === 'power' && ownedPowers.has(i)) continue;
     pool.push(i);
   }
   return pool;
@@ -7260,12 +7271,15 @@ const renderShop = () => {
   for (let i = 0; i < shopData.cards.length; i++) {
     const item = shopData.cards[i];
     const purchased = shopData.purchased[`card_${i}`];
+    const cData = CARDS[item.cardId];
+    const powerOwned = cData && cData.t === 'power' && getDeckPowerIds().has(item.cardId);
+    const unavailable = purchased || powerOwned;
     const cx = 60 + (i % 3) * 170 + CARD_W / 2;
     const cy = 150 + Math.floor(i / 3) * 220;
 
-    if (purchased) ctx.globalAlpha = 0.3;
-    const hovered = !purchased && isInRect(mouse.x, mouse.y, cx - CARD_W / 2 - 5, cy - CARD_H / 2 - 5, CARD_W + 10, CARD_H + 30);
-    drawCard(cx, cy, makeCard(item.cardId), hovered ? 0.95 : 0.9, hovered, !purchased && game.gold >= item.price);
+    if (unavailable) ctx.globalAlpha = 0.3;
+    const hovered = !unavailable && isInRect(mouse.x, mouse.y, cx - CARD_W / 2 - 5, cy - CARD_H / 2 - 5, CARD_W + 10, CARD_H + 30);
+    drawCard(cx, cy, makeCard(item.cardId), hovered ? 0.95 : 0.9, hovered, !unavailable && game.gold >= item.price);
     ctx.globalAlpha = 1;
 
     ctx.save();
@@ -7286,6 +7300,9 @@ const renderShop = () => {
     if (purchased) {
       ctx.fillStyle = '#4a4050';
       ctx.fillText('VENDIDO', priceX + priceW / 2, priceY + priceH / 2);
+    } else if (powerOwned) {
+      ctx.fillStyle = '#4a4050';
+      ctx.fillText('NO DECK', priceX + priceW / 2, priceY + priceH / 2);
     } else {
       ctx.fillStyle = game.gold >= item.price ? '#f4d03f' : '#6a3a4a';
       ctx.fillText(`${item.price}g`, priceX + priceW / 2, priceY + priceH / 2);
@@ -9622,7 +9639,9 @@ const handleInput = () => {
         const cx = 60 + (i % 3) * 170 + CARD_W / 2;
         const cy = 150 + Math.floor(i / 3) * 220;
         if (isInRect(mouse.x, mouse.y, cx - CARD_W / 2 - 10, cy - CARD_H / 2 - 10, CARD_W + 20, CARD_H + 30)) {
-          if (game.gold >= item.price) {
+          const cardData = CARDS[item.cardId];
+          const alreadyOwned = cardData && cardData.t === 'power' && getDeckPowerIds().has(item.cardId);
+          if (game.gold >= item.price && !alreadyOwned) {
             game.gold -= item.price;
             game.deck.push(makeCard(item.cardId));
             shopData.purchased[`card_${i}`] = true;
