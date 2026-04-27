@@ -3742,7 +3742,7 @@ const getNodePos = (floorIdx, nodeIdx, nodeCount) => {
   const totalW = mob ? MAP_MOBILE_TOTALW : 500;
   const startX = (W - totalW) / 2;
   const topMargin = 100;
-  const botMargin = 65;
+  const botMargin = 80;
   const totalFloors = game.map ? game.map.length : 15;
   const usableH = H - topMargin - botMargin;
   const spacing = mob ? MAP_MOBILE_SPACING : usableH / Math.max(totalFloors - 1, 1);
@@ -3755,7 +3755,7 @@ const getMapMaxScroll = () => {
   if (!isTouchDevice || !game.map) return 0;
   const totalFloors = game.map.length;
   const topMargin = 100;
-  const botMargin = 65;
+  const botMargin = 80;
   const usableH = H - topMargin - botMargin;
   const totalMapH = (totalFloors - 1) * MAP_MOBILE_SPACING;
   return Math.max(0, totalMapH - usableH);
@@ -3763,7 +3763,7 @@ const getMapMaxScroll = () => {
 const centerMapOnFloor = (floor) => {
   if (!isTouchDevice || !game.map) return;
   const topMargin = 100;
-  const botMargin = 65;
+  const botMargin = 80;
   const usableH = H - topMargin - botMargin;
   const targetY = floor * MAP_MOBILE_SPACING - usableH / 2 + MAP_MOBILE_SPACING;
   mapScrollY = clamp(targetY, 0, getMapMaxScroll());
@@ -10150,9 +10150,7 @@ const getTutorialSpotlight = () => {
       const c = combat.hand[i];
       const data = getCardData(c);
       if (data.n.startsWith(namePrefix)) {
-        const s = c.scale;
-        const w = CARD_W * s * 0.92, h = CARD_H * s * 0.95;
-        return { x: c.x - w / 2, y: c.y - h / 2, w: w, h: h, cardIdx: i, rounded: 8 };
+        return { arrowOnly: true, cx: c.x, cy: c.y - CARD_H * c.scale * 0.5 };
       }
     }
     return null;
@@ -10175,7 +10173,8 @@ const getTutorialSpotlight = () => {
     case 'end_turn': {
       const endBtnW = mob ? 160 : 120, endBtnH = mob ? 54 : 40;
       const endBtnX = W - endBtnW - 20, endBtnY = mob ? 340 : 420;
-      return { x: endBtnX - 6, y: endBtnY - 6, w: endBtnW + 12, h: endBtnH + 12 };
+      const skewOff = -0.08 * (endBtnY + endBtnH / 2);
+      return { x: endBtnX + skewOff - 8, y: endBtnY - 4, w: endBtnW + 16, h: endBtnH + 8, rounded: 6 };
     }
     case 'potion': {
       const potSlotW = mob ? 56 : 42, potSlotH = mob ? 56 : 42;
@@ -10199,7 +10198,29 @@ const renderTutorialOverlay = () => {
 
   ctx.save();
 
-  if (spot) {
+  if (spot && spot.arrowOnly) {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, W, H);
+
+    const bob = Math.sin(t * 4) * 8;
+    const ax = spot.cx, ay = spot.cy - 14 + bob;
+    const sz = isTouchDevice ? 28 : 22;
+
+    ctx.shadowColor = PAL.gold;
+    ctx.shadowBlur = 18 + Math.sin(t * 3) * 6;
+    ctx.fillStyle = PAL.gold;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - sz, ay - sz * 1.3);
+    ctx.lineTo(ax - sz * 0.35, ay - sz * 1.3);
+    ctx.lineTo(ax - sz * 0.35, ay - sz * 2.4);
+    ctx.lineTo(ax + sz * 0.35, ay - sz * 2.4);
+    ctx.lineTo(ax + sz * 0.35, ay - sz * 1.3);
+    ctx.lineTo(ax + sz, ay - sz * 1.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  } else if (spot) {
     const pulse = 2 + Math.sin(t * 3) * 2;
     const r = spot.rounded || 14;
     const sx = spot.x - pulse, sy = spot.y - pulse;
@@ -10255,11 +10276,14 @@ const renderTutorialOverlay = () => {
   ctx.shadowColor = PAL.gold;
   ctx.shadowBlur = 8;
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${mob ? 19 : 17}px sans-serif`;
+  const fontSize = mob ? 19 : 17;
+  ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
-  const lines = step.msg.split('\n');
+  const lines = wrapText(step.msg, boxW - 40, fontSize, 'sans-serif');
+  ctx.font = `bold ${fontSize}px sans-serif`;
   const lineH = mob ? 24 : 22;
-  const textStartY = boxY + boxH / 2 - (lines.length - 1) * lineH / 2;
+  const textAreaH = step.target === 'info' ? boxH - 68 : boxH;
+  const textStartY = boxY + textAreaH / 2 - (lines.length - 1) * lineH / 2;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, textStartY + i * lineH);
   }
