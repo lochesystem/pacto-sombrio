@@ -10199,9 +10199,32 @@ const renderTutorialOverlay = () => {
   ctx.save();
 
   if (spot && spot.arrowOnly) {
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 0, W, H);
+    let hx0 = W, hy0 = H, hx1 = 0, hy1 = 0;
+    for (let i = 0; i < combat.hand.length; i++) {
+      const c = combat.hand[i];
+      const s = c.scale;
+      const cw = CARD_W * s, ch = CARD_H * s;
+      const skOff = cw * 0.7;
+      hx0 = Math.min(hx0, c.x - cw / 2 - skOff);
+      hy0 = Math.min(hy0, c.y - ch / 2 - 10);
+      hx1 = Math.max(hx1, c.x + cw / 2 - 20);
+      hy1 = Math.max(hy1, c.y + ch / 2 + 10);
+    }
+    const pad = 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.roundRect(hx0 - pad, hy0 - pad, hx1 - hx0 + pad * 2, hy1 - hy0 + pad * 2, 12);
+    ctx.closePath();
+    ctx.fill('evenodd');
 
+    ctx.strokeStyle = PAL.gold;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(hx0 - pad, hy0 - pad, hx1 - hx0 + pad * 2, hy1 - hy0 + pad * 2, 12);
+    ctx.stroke();
+
+    ctx.save();
     const bob = Math.sin(t * 4) * 8;
     const ax = spot.cx, ay = spot.cy - 14 + bob;
     const sz = isTouchDevice ? 28 : 22;
@@ -10304,7 +10327,8 @@ const renderTutorialOverlay = () => {
 
     ctx.fillStyle = PAL.gold;
     ctx.font = `bold ${mob ? 16 : 14}px sans-serif`;
-    ctx.fillText('Entendi!', W / 2, btnY + btnH / 2 + 5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Entendi!', W / 2, btnY + btnH / 2);
 
     tutorial._infoBtnRect = { x: btnX, y: btnY, w: btnW, h: btnH };
   } else {
