@@ -10241,15 +10241,18 @@ const renderTutorialOverlay = () => {
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  ctx.fillStyle = PAL.ivory;
-  ctx.font = `bold ${mob ? 17 : 15}px sans-serif`;
+  ctx.shadowColor = PAL.gold;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${mob ? 19 : 17}px sans-serif`;
   ctx.textAlign = 'center';
   const lines = step.msg.split('\n');
-  const lineH = mob ? 22 : 20;
+  const lineH = mob ? 24 : 22;
   const textStartY = boxY + boxH / 2 - (lines.length - 1) * lineH / 2;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, textStartY + i * lineH);
   }
+  ctx.shadowBlur = 0;
 
   if (step.target === 'info') {
     const btnW = 180, btnH = 44;
