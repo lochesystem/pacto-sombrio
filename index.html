@@ -19,7 +19,7 @@
 <title>Pacto Sombrio</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{background:#06041a;display:flex;justify-content:center;align-items:center;height:100dvh;overflow:hidden;position:fixed;inset:0}
 canvas{display:block;cursor:pointer;max-width:100vw;max-height:100dvh;object-fit:contain}
 #orient-hint{display:none;position:fixed;inset:0;z-index:9999;background:#06041a;color:#7733aa;font:bold italic 22px sans-serif;justify-content:center;align-items:center;text-align:center;flex-direction:column;gap:12px}
@@ -8134,9 +8134,17 @@ canvas.addEventListener('mousemove', (e) => {
   mouse.y = (e.clientY - rect.top) * (H / rect.height);
 });
 
+const tryFullscreen = () => {
+  if (!isTouchDevice || document.fullscreenElement) return;
+  const el = document.documentElement;
+  const rq = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if (rq) rq.call(el).catch(() => {});
+};
+
 canvas.addEventListener('click', (e) => {
   initAudio();
   startBGM();
+  tryFullscreen();
   mouse.justClicked = true;
 });
 
