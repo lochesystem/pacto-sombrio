@@ -1957,6 +1957,7 @@ const game = {
   map: null,
   stats: { enemiesKilled: 0, cardsPlayed: 0, damageDealt: 0, floorsCleared: 0, elitesKilled: 0, bossesKilled: 0 },
   menuTime: 0,
+  playerShake: 0,
   fadeAlpha: 0,
   fadeDir: 0,
   fadeCallback: null,
@@ -2048,6 +2049,7 @@ const defaultMeta = () => ({
   enemiesSeen: [],
   tutorialDone: false,
   actsCleared: 0,
+  lastChar: 'pacto',
 });
 
 let meta = defaultMeta();
@@ -3613,6 +3615,482 @@ const drawIntentIcon = (x, y, intent, enemy) => {
   ctx.restore();
 };
 
+// ==================== PLAYER SPRITE RENDERING ====================
+const CHAR_NAMES = { pacto: 'Guerreiro', sombra: 'Assassino', cinza: 'Mago Sombrio', luz: 'Mago da Luz', druida: 'Druida' };
+const CHAR_COLORS = { pacto: '#7733aa', sombra: '#9933cc', cinza: '#3366cc', luz: '#ddaa22', druida: '#228833' };
+
+const drawPlayerSprite = (charId, cx, cy, size, options) => {
+  const opts = options || {};
+  const alpha = opts.alpha !== undefined ? opts.alpha : 1;
+  const shake = opts.shake || 0;
+  const flip = opts.flip ? -1 : 1;
+  const col = CHAR_COLORS[charId] || '#7733aa';
+  const now = Date.now();
+  const seed = cx * 0.013 + cy * 0.017;
+
+  const ox = shake ? Math.sin(shake * 30) * 4 : 0;
+  const hoverY = Math.sin(now * 0.0025 + seed) * 3;
+  const sway = Math.sin(now * 0.0018 + seed * 2) * 0.02;
+  const s = size || 1;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.3;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 48, s * 22, s * 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.translate(cx + ox, cy + hoverY);
+  ctx.rotate(sway);
+  ctx.scale(s * flip, s);
+
+  if (charId === 'pacto') {
+    // --- GUERREIRO: elmo, corpo robusto, espada, escudo ---
+    // body
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(-14, -10);
+    ctx.lineTo(14, -10);
+    ctx.lineTo(16, 30);
+    ctx.lineTo(-16, 30);
+    ctx.closePath();
+    ctx.fill();
+    // legs
+    ctx.fillStyle = '#2a1848';
+    ctx.fillRect(-12, 30, 9, 20);
+    ctx.fillRect(3, 30, 9, 20);
+    // head/helmet
+    ctx.fillStyle = '#554488';
+    ctx.beginPath();
+    ctx.arc(0, -22, 14, 0, Math.PI * 2);
+    ctx.fill();
+    // visor slit
+    ctx.fillStyle = '#220e44';
+    ctx.fillRect(-8, -24, 16, 5);
+    // helmet crest
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(0, -38);
+    ctx.lineTo(-3, -28);
+    ctx.lineTo(3, -28);
+    ctx.closePath();
+    ctx.fill();
+    // shield (left arm)
+    ctx.fillStyle = '#554488';
+    ctx.beginPath();
+    ctx.moveTo(-20, -5);
+    ctx.lineTo(-30, 0);
+    ctx.lineTo(-30, 20);
+    ctx.lineTo(-20, 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // sword (right arm)
+    ctx.strokeStyle = '#ccddee';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(18, 5);
+    ctx.lineTo(24, -30);
+    ctx.stroke();
+    // crossguard
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(16, -2);
+    ctx.lineTo(26, -2);
+    ctx.stroke();
+    // glow on sword tip
+    ctx.save();
+    ctx.shadowColor = '#ccddee';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ccddee';
+    ctx.beginPath();
+    ctx.arc(24, -32, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+  } else if (charId === 'sombra') {
+    // --- ASSASSINO: esguio, capuz, capa, adagas ---
+    // cape flowing
+    ctx.fillStyle = '#1a0e2e';
+    ctx.beginPath();
+    ctx.moveTo(-8, -8);
+    ctx.quadraticCurveTo(-20, 20, -16 + Math.sin(now * 0.003) * 3, 42);
+    ctx.lineTo(8 + Math.sin(now * 0.004) * 2, 40);
+    ctx.quadraticCurveTo(10, 10, 8, -8);
+    ctx.closePath();
+    ctx.fill();
+    // body slim
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(-9, -8);
+    ctx.lineTo(9, -8);
+    ctx.lineTo(10, 28);
+    ctx.lineTo(-10, 28);
+    ctx.closePath();
+    ctx.fill();
+    // legs
+    ctx.fillStyle = '#220e44';
+    ctx.fillRect(-8, 28, 6, 18);
+    ctx.fillRect(2, 28, 6, 18);
+    // hood
+    ctx.fillStyle = '#2a1848';
+    ctx.beginPath();
+    ctx.moveTo(0, -38);
+    ctx.quadraticCurveTo(-16, -22, -12, -8);
+    ctx.lineTo(12, -8);
+    ctx.quadraticCurveTo(16, -22, 0, -38);
+    ctx.closePath();
+    ctx.fill();
+    // eyes glow
+    ctx.save();
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ff66ff';
+    ctx.beginPath();
+    ctx.arc(-4, -22, 2, 0, Math.PI * 2);
+    ctx.arc(4, -22, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // daggers crossed
+    ctx.strokeStyle = '#ccccdd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-6, 8);
+    ctx.lineTo(14, -10);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(6, 8);
+    ctx.lineTo(-14, -10);
+    ctx.stroke();
+
+  } else if (charId === 'cinza') {
+    // --- MAGO SOMBRIO: manto longo, cajado com orbe ---
+    // robe
+    ctx.fillStyle = '#1a2a55';
+    ctx.beginPath();
+    ctx.moveTo(-12, -6);
+    ctx.lineTo(12, -6);
+    ctx.lineTo(18, 42);
+    ctx.lineTo(-18, 42);
+    ctx.closePath();
+    ctx.fill();
+    // body overlay
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-10, -6);
+    ctx.lineTo(10, -6);
+    ctx.lineTo(12, 25);
+    ctx.lineTo(-12, 25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = alpha;
+    // hood
+    ctx.fillStyle = '#0e1a3a';
+    ctx.beginPath();
+    ctx.moveTo(0, -36);
+    ctx.quadraticCurveTo(-14, -18, -10, -6);
+    ctx.lineTo(10, -6);
+    ctx.quadraticCurveTo(14, -18, 0, -36);
+    ctx.closePath();
+    ctx.fill();
+    // glowing eyes
+    ctx.save();
+    ctx.shadowColor = '#66aaff';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#66aaff';
+    ctx.beginPath();
+    ctx.arc(-3, -20, 2, 0, Math.PI * 2);
+    ctx.arc(3, -20, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // staff
+    ctx.strokeStyle = '#5544aa';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(20, 42);
+    ctx.lineTo(22, -28);
+    ctx.stroke();
+    // orb on staff
+    ctx.save();
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(22, -32, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // orb inner glow
+    ctx.fillStyle = '#aaccff';
+    ctx.beginPath();
+    ctx.arc(22, -33, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (charId === 'luz') {
+    // --- MAGO DA LUZ: tunica clara, aureola, cetro luminoso ---
+    // robe
+    ctx.fillStyle = '#3a3018';
+    ctx.beginPath();
+    ctx.moveTo(-12, -4);
+    ctx.lineTo(12, -4);
+    ctx.lineTo(16, 40);
+    ctx.lineTo(-16, 40);
+    ctx.closePath();
+    ctx.fill();
+    // body overlay golden
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-10, -4);
+    ctx.lineTo(10, -4);
+    ctx.lineTo(12, 22);
+    ctx.lineTo(-12, 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = alpha;
+    // head
+    ctx.fillStyle = '#e8d8b0';
+    ctx.beginPath();
+    ctx.arc(0, -18, 11, 0, Math.PI * 2);
+    ctx.fill();
+    // halo
+    ctx.save();
+    ctx.strokeStyle = '#ffdd44';
+    ctx.shadowColor = '#ffdd44';
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, -30, 12, 5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    // scepter
+    ctx.strokeStyle = '#aa8833';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(18, 38);
+    ctx.lineTo(20, -20);
+    ctx.stroke();
+    // light orb on scepter
+    ctx.save();
+    ctx.shadowColor = '#ffee88';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#ffee88';
+    ctx.beginPath();
+    ctx.arc(20, -24, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(20, -25, 2, 0, Math.PI * 2);
+    ctx.fill();
+    // gentle glow around body
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.08;
+    ctx.fillStyle = '#ffdd44';
+    ctx.beginPath();
+    ctx.arc(0, 5, 35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+  } else if (charId === 'druida') {
+    // --- DRUIDA: corpo semi-bestial, chifres, manto de folhas ---
+    // leafy mantle
+    ctx.fillStyle = '#1a3318';
+    ctx.beginPath();
+    ctx.moveTo(-14, -6);
+    ctx.quadraticCurveTo(-22, 15, -18 + Math.sin(now * 0.003) * 2, 38);
+    ctx.lineTo(18 + Math.sin(now * 0.004) * 2, 38);
+    ctx.quadraticCurveTo(22, 15, 14, -6);
+    ctx.closePath();
+    ctx.fill();
+    // body
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(-11, -6);
+    ctx.lineTo(11, -6);
+    ctx.lineTo(13, 28);
+    ctx.lineTo(-13, 28);
+    ctx.closePath();
+    ctx.fill();
+    // legs
+    ctx.fillStyle = '#1a3318';
+    ctx.fillRect(-10, 28, 8, 16);
+    ctx.fillRect(2, 28, 8, 16);
+    // head
+    ctx.fillStyle = '#44aa55';
+    ctx.beginPath();
+    ctx.arc(0, -18, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // antlers
+    ctx.strokeStyle = '#886633';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-6, -28);
+    ctx.lineTo(-10, -42);
+    ctx.lineTo(-14, -44);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-10, -38);
+    ctx.lineTo(-6, -44);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(6, -28);
+    ctx.lineTo(10, -42);
+    ctx.lineTo(14, -44);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(10, -38);
+    ctx.lineTo(6, -44);
+    ctx.stroke();
+    // eyes
+    ctx.fillStyle = '#aaffaa';
+    ctx.save();
+    ctx.shadowColor = '#66ff66';
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.arc(-4, -19, 2, 0, Math.PI * 2);
+    ctx.arc(4, -19, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // wooden staff
+    ctx.strokeStyle = '#664422';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-20, 36);
+    ctx.lineTo(-18, -22);
+    ctx.stroke();
+    // vine wrap on staff
+    ctx.strokeStyle = '#44aa44';
+    ctx.lineWidth = 1.5;
+    for (let vi = 0; vi < 4; vi++) {
+      const vy = -15 + vi * 12;
+      ctx.beginPath();
+      ctx.arc(-19, vy, 3, -Math.PI * 0.5, Math.PI * 0.5);
+      ctx.stroke();
+    }
+    // leaf on top
+    ctx.fillStyle = '#66cc44';
+    ctx.beginPath();
+    ctx.ellipse(-18, -26, 4, 7, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+};
+
+// ==================== PLAYER ANIMATION SYSTEM ====================
+const playerAnim = {
+  type: 'idle',       // idle | attack | buff | block | heal
+  t: 0,               // progress 0..1
+  duration: 0,        // ms
+  startTime: 0,
+  targetX: 0,
+  targetY: 0,
+  originX: 0,
+  originY: 0,
+  color: '#ffffff',
+  queue: [],
+};
+
+const easeInQuad = (t) => t * t;
+
+const triggerPlayerAnim = (type, opts) => {
+  const o = opts || {};
+  const anim = {
+    type,
+    duration: o.duration || 400,
+    targetX: o.targetX || 0,
+    targetY: o.targetY || 0,
+    color: o.color || '#ffffff',
+  };
+  if (playerAnim.type !== 'idle') {
+    playerAnim.queue.push(anim);
+    return;
+  }
+  _startPlayerAnim(anim);
+};
+
+const _startPlayerAnim = (anim) => {
+  playerAnim.type = anim.type;
+  playerAnim.duration = anim.duration;
+  playerAnim.startTime = Date.now();
+  playerAnim.t = 0;
+  playerAnim.targetX = anim.targetX;
+  playerAnim.targetY = anim.targetY;
+  playerAnim.color = anim.color;
+};
+
+const updatePlayerAnim = (baseX, baseY) => {
+  if (playerAnim.type === 'idle') {
+    playerAnim.originX = baseX;
+    playerAnim.originY = baseY;
+    if (playerAnim.queue.length > 0) {
+      _startPlayerAnim(playerAnim.queue.shift());
+    }
+    return { x: baseX, y: baseY, scaleX: 1, scaleY: 1, glow: null, trail: false };
+  }
+
+  const elapsed = Date.now() - playerAnim.startTime;
+  playerAnim.t = Math.min(1, elapsed / playerAnim.duration);
+
+  let result = { x: baseX, y: baseY, scaleX: 1, scaleY: 1, glow: null, trail: false };
+
+  if (playerAnim.type === 'attack') {
+    const half = 0.45;
+    if (playerAnim.t < half) {
+      const p = easeInQuad(playerAnim.t / half);
+      result.x = baseX + (playerAnim.targetX - baseX) * p;
+      result.y = baseY + (playerAnim.targetY - baseY) * p;
+      result.trail = true;
+    } else {
+      const p = easeOutBack((playerAnim.t - half) / (1 - half));
+      result.x = playerAnim.targetX + (baseX - playerAnim.targetX) * p;
+      result.y = playerAnim.targetY + (baseY - playerAnim.targetY) * p;
+    }
+  } else if (playerAnim.type === 'buff') {
+    const pulse = Math.sin(playerAnim.t * Math.PI * 3) * 0.15;
+    result.scaleX = 1 + pulse;
+    result.scaleY = 1 + pulse;
+    result.glow = playerAnim.color;
+    result.y = baseY - Math.sin(playerAnim.t * Math.PI) * 12;
+  } else if (playerAnim.type === 'block') {
+    const crouch = Math.sin(playerAnim.t * Math.PI);
+    result.scaleX = 1 + crouch * 0.1;
+    result.scaleY = 1 - crouch * 0.08;
+    result.glow = '#3498db';
+  } else if (playerAnim.type === 'heal') {
+    result.y = baseY - Math.sin(playerAnim.t * Math.PI) * 10;
+    result.glow = '#33cc33';
+    const pulse = Math.sin(playerAnim.t * Math.PI * 2) * 0.1;
+    result.scaleX = 1 + pulse;
+    result.scaleY = 1 + pulse;
+  }
+
+  if (playerAnim.t >= 1) {
+    playerAnim.type = 'idle';
+    playerAnim.t = 0;
+    result.x = baseX;
+    result.y = baseY;
+    result.scaleX = 1;
+    result.scaleY = 1;
+    result.glow = null;
+    result.trail = false;
+    if (playerAnim.queue.length > 0) {
+      _startPlayerAnim(playerAnim.queue.shift());
+    }
+  }
+
+  return result;
+};
+
 const drawEnemy = (enemy, idx) => {
   if (enemy.dead && enemy.deathTimer <= 0) return;
 
@@ -4834,6 +5312,7 @@ const dealDamageToPlayer = (amount) => {
   }
   if (dmg > 0) {
     game.hp -= dmg;
+    game.playerShake = Date.now();
     addFloatingText(150, 420, `-${dmg}`, '#ff4444', 22);
     sfxHit();
     spawnParticles(150, 450, '#cc3333', 5, 30);
@@ -4884,6 +5363,40 @@ const playCard = (cardIdx, targetEnemyIdx) => {
   sfxCard();
 
   const isAttack = data.t === 'attack';
+
+  // Trigger player animation based on card type
+  if (isAttack && targetEnemyIdx >= 0) {
+    const te = combat.enemies[targetEnemyIdx];
+    if (te && !te.dead) {
+      triggerPlayerAnim('attack', {
+        duration: 350,
+        targetX: te.x - 60,
+        targetY: te.y + 20,
+        color: CHAR_COLORS[game.character] || '#ff4444',
+      });
+    }
+  } else if (isAttack && data.tgt === 'all') {
+    const alive = combat.enemies.filter(e => !e.dead);
+    if (alive.length > 0) {
+      const midX = alive.reduce((s, e) => s + e.x, 0) / alive.length;
+      const midY = alive.reduce((s, e) => s + e.y, 0) / alive.length;
+      triggerPlayerAnim('attack', {
+        duration: 400,
+        targetX: midX - 80,
+        targetY: midY + 20,
+        color: CHAR_COLORS[game.character] || '#ff4444',
+      });
+    }
+  } else if (data.t === 'power' || data.special === 'radiance' || data.special === 'stealth' || data.special === 'regen') {
+    triggerPlayerAnim('buff', {
+      duration: 500,
+      color: CHAR_COLORS[game.character] || '#ffcc44',
+    });
+  } else if (data.blk && !isAttack) {
+    triggerPlayerAnim('block', { duration: 350 });
+  } else if (data.healSelf && data.healSelf > 0) {
+    triggerPlayerAnim('heal', { duration: 450, color: '#33cc33' });
+  }
   const hasPenNib = game.relics.includes('penNib');
   const hasDemonSkull = game.relics.includes('demonSkull') && game.hp < game.maxHp * 0.5;
   let penNibActive = false;
@@ -5457,6 +5970,42 @@ const renderCombat = () => {
   const mobC = isTouchDevice;
   renderCombatBackground();
 
+  // Player sprite in battle field
+  const pBaseX = mobC ? 140 : 220;
+  const pBaseY = mobC ? 280 : 310;
+  const pShake = game.playerShake ? Math.max(0, 1 - (Date.now() - game.playerShake) / 300) * 10 : 0;
+  const anim = updatePlayerAnim(pBaseX, pBaseY);
+
+  // Trail effect during attack lunge
+  if (anim.trail) {
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.3, pBaseY + (anim.y - pBaseY) * 0.3, 1.8);
+    ctx.globalAlpha = 0.08;
+    drawPlayerSprite(game.character || 'pacto', pBaseX + (anim.x - pBaseX) * 0.1, pBaseY + (anim.y - pBaseY) * 0.1, 1.8);
+    ctx.restore();
+  }
+
+  // Glow effect for buff/block/heal
+  if (anim.glow) {
+    ctx.save();
+    ctx.globalAlpha = 0.25 * Math.sin(playerAnim.t * Math.PI);
+    ctx.fillStyle = anim.glow;
+    ctx.shadowColor = anim.glow;
+    ctx.shadowBlur = 30;
+    ctx.beginPath();
+    ctx.arc(anim.x, anim.y - 10, 50, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(anim.x, anim.y);
+  ctx.scale(anim.scaleX, anim.scaleY);
+  ctx.translate(-anim.x, -anim.y);
+  drawPlayerSprite(game.character || 'pacto', anim.x, anim.y, 1.8, { shake: pShake });
+  ctx.restore();
+
   for (let i = 0; i < combat.enemies.length; i++) {
     const e = combat.enemies[i];
     const isHovered = i === combat.hoveredEnemyIdx && combat.targeting;
@@ -5494,7 +6043,7 @@ const renderCombat = () => {
     const lt = now * 0.003;
 
     // --- Liquid spikes (right side) ---
-    ctx.fillStyle = '#7733aa';
+    ctx.fillStyle = CHAR_COLORS[game.character] || '#7733aa';
     ctx.beginPath();
     ctx.moveTo(pw + 10, -10);
     for (let sy = -10; sy <= ph + 16; sy += 5) {
@@ -5587,41 +6136,16 @@ const renderCombat = () => {
     ctx.fillStyle = pgrd;
     ctx.fillRect(portraitCx - portraitR, portraitCy - portraitR, portraitR * 2, portraitR * 2);
 
-    ctx.strokeStyle = '#88aadd';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(portraitCx, portraitCy - 6, 10, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(portraitCx - 12, portraitCy + 18);
-    ctx.quadraticCurveTo(portraitCx, portraitCy + 2, portraitCx + 12, portraitCy + 18);
-    ctx.stroke();
-
-    const swordAngle = -0.6 + Math.sin(now * 0.003) * 0.1;
-    ctx.save();
-    ctx.translate(portraitCx + 8, portraitCy + 8);
-    ctx.rotate(swordAngle);
-    ctx.strokeStyle = '#ccddee';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 6);
-    ctx.lineTo(0, -16);
-    ctx.stroke();
-    ctx.strokeStyle = '#ffcc44';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-4, 4);
-    ctx.lineTo(4, 4);
-    ctx.stroke();
-    ctx.restore();
+    drawPlayerSprite(game.character || 'pacto', portraitCx, portraitCy + 6, 0.5, { alpha: 1 });
 
     ctx.restore();
-    ctx.strokeStyle = '#7733aa';
+    const charCol = CHAR_COLORS[game.character] || '#7733aa';
+    ctx.strokeStyle = charCol;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(portraitCx, portraitCy, portraitR + 2, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.strokeStyle = '#5a4880';
+    ctx.strokeStyle = charCol + '88';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(portraitCx, portraitCy, portraitR + 0.5, 0, Math.PI * 2);
@@ -5636,7 +6160,7 @@ const renderCombat = () => {
 
     ctx.font = 'bold 28px sans-serif';
     ctx.fillStyle = '#e8dcc8';
-    ctx.fillText('Pacto', portraitCx + portraitR + 12, portraitCy + 16);
+    ctx.fillText(CHAR_NAMES[game.character] || 'Guerreiro', portraitCx + portraitR + 12, portraitCy + 16);
 
     const hpRatio = game.hp / game.maxHp;
     const barX = 18, barY = 82, barW = 210, barH = 18;
@@ -7462,16 +7986,7 @@ const renderCharSelect = () => {
     ctx.fillText(ch.sub, cx + cardW / 2, cardY + hdrH + 20);
 
     const silY = cardY + hdrH + 40;
-    ctx.save();
-    ctx.globalAlpha = ch.unlocked ? 0.2 : 0.08;
-    ctx.fillStyle = ch.color;
-    ctx.beginPath();
-    ctx.ellipse(cx + cardW / 2, silY + 15, 20, 25, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillRect(cx + cardW / 2 - 12, silY + 38, 24, 50);
-    ctx.fillRect(cx + cardW / 2 - 8, silY + 88, 7, 35);
-    ctx.fillRect(cx + cardW / 2 + 1, silY + 88, 7, 35);
-    ctx.restore();
+    drawPlayerSprite(ch.id, cx + cardW / 2, silY + 65, 1.0, { alpha: ch.unlocked ? 0.85 : 0.15 });
 
     if (!ch.unlocked) {
       ctx.font = 'bold 32px sans-serif';
@@ -7774,36 +8289,9 @@ const renderMenu = (dt) => {
   }
   ctx.globalAlpha = 1;
 
-  // --- Silhouette character on right side ---
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = '#7733aa';
-  const charX = W * 0.78, charY = H * 0.55;
-  ctx.beginPath();
-  ctx.ellipse(charX, charY - 80, 30, 35, -0.1, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillRect(charX - 18, charY - 50, 36, 70);
-  ctx.beginPath();
-  ctx.moveTo(charX - 18, charY - 30);
-  ctx.lineTo(charX - 45, charY + 10);
-  ctx.lineTo(charX - 40, charY + 15);
-  ctx.lineTo(charX - 14, charY - 20);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(charX + 18, charY - 30);
-  ctx.lineTo(charX + 45, charY + 10);
-  ctx.lineTo(charX + 40, charY + 15);
-  ctx.lineTo(charX + 14, charY - 20);
-  ctx.fill();
-  ctx.fillRect(charX - 12, charY + 20, 10, 55);
-  ctx.fillRect(charX + 2, charY + 20, 10, 55);
-  ctx.beginPath();
-  ctx.moveTo(charX + 45, charY + 5);
-  ctx.lineTo(charX + 48, charY - 80);
-  ctx.lineTo(charX + 44, charY - 80);
-  ctx.lineTo(charX + 40, charY + 5);
-  ctx.fill();
-  ctx.restore();
+  // --- Character sprite on right side ---
+  const menuCharId = (meta.lastChar && CHAR_NAMES[meta.lastChar]) ? meta.lastChar : 'pacto';
+  drawPlayerSprite(menuCharId, W * 0.78, H * 0.55, 2.5, { alpha: 0.18 });
 
   // --- TITLE: "PACTO SOMBRIO" large angular banner ---
   ctx.save();
@@ -8219,6 +8707,8 @@ const fadeToState = (newState, callback) => {
 const startNewRun = (character) => {
   const ch = character || game.character || 'pacto';
   game.character = ch;
+  meta.lastChar = ch;
+  saveMeta();
   game.act = 1;
   game.floor = -1;
   game.nodeIdx = -1;
