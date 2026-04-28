@@ -7791,7 +7791,7 @@ const processEventChoice = (choiceAction) => {
         if (available.length > 0) {
           const rel = available[randInt(0, available.length - 1)];
           game.relics.push(rel.id);
-          eventData.resultText = `Perdeu 15 HP. Ganhou ${rel.n}!`;
+          eventData.resultText = `Perdeu 15 HP.\n\n${rel.icon} ${rel.n}\n${rel.d}`;
         } else {
           eventData.resultText = 'Perdeu 15 HP. Não há relíquias disponíveis.';
         }
@@ -7852,7 +7852,8 @@ const processEventChoice = (choiceAction) => {
         if (rareCards.length > 0) {
           const cid = rareCards[randInt(0, rareCards.length - 1)];
           game.deck.push(makeCard(cid));
-          eventData.resultText = `Perdeu 20 HP. Ganhou ${CARDS[cid].n}!`;
+          const cd = CARDS[cid];
+          eventData.resultText = `Perdeu 20 HP.\n\nCarta Rara: ${cd.n}\n${cd.d.replace(/\\n/g, ' ')}`;
         } else {
           eventData.resultText = 'Perdeu 20 HP. Nada aconteceu.';
         }
